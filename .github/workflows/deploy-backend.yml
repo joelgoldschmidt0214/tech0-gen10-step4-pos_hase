@@ -1,7 +1,9 @@
+# ワークフローの名前
 name: Deploy Backend to Azure
 
+# ワークフローが実行されるトリガー
 on:
-    # 1. GitHubのUIから手動で実行できるようにする
+    # 1. GitHubのActionsタブから手動で実行できるようにする
     workflow_dispatch:
         inputs:
             level:
@@ -9,33 +11,60 @@ on:
                 required: true
                 default: "LV3"
                 type: choice
-                options:
-                    - LV1
-                    - LV2
-                    - LV3
+                options: [LV1, LV2, LV3]
 
-    # 2. LV3のバックエンドにpushされたら自動でデプロイする（メイン開発用）
+    # 2. メインブランチの特定ディレクトリにpushされたら自動実行
     push:
-        branches:
-            - main
+        branches: [main]
         paths:
-            - "LV3/backend/**"
+            # このワークフローファイル自体か、LV3/backendディレクトリに変更があった場合のみ実行
             - ".github/workflows/deploy-backend.yml"
+            - "LV3/backend/**"
 
 jobs:
+    # 'build-and-deploy' という名前のジョブを定義
     build-and-deploy:
+        # 実行環境はUbuntuの最新版
         runs-on: ubuntu-latest
 
-        # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
-        defaults:
-            run:
-                working-directory: ./${{ github.event.inputs.level || 'LV3' }}/backend
+        # ジョブ全体で使う環境変数を設定
+        env:
+            # デプロイ対象のPythonバージョン
+            PYTHON_VERSION: "3.12"
+            # デプロイ対象のディレクトリパスを動的に設定
+            # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
+            WORKING_DIRECTORY: ./${{ github.event.inputs.level || 'LV3' }}/backend
 
         steps:
-            - name: Checkout code
+            # --- Step 1: ソースコードのチェックアウト ---
+            - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: (ここに ${{ github.event.inputs.level || 'LV3' }} のバックエンドのビルド＆デプロイ処理を記述)
+            # --- Step 2: Pythonのセットアップ ---
+            - name: Set up Python ${{ env.PYTHON_VERSION }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            # --- Step 3: 依存関係のインストール (uvを使用) ---
+            # uvは超高速なパッケージインストーラーです
+            - name: Install uv and dependencies
               run: |
-                  echo "Deploying ${{ github.event.inputs.level || 'LV3' }} Backend..."
-                  # ここにDockerビルド、ACRへのプッシュ、Azure App Serviceへのデプロイ処理が入る
+                  pip install uv
+                  uv pip install --system --no-cache --from-requirements pyproject.toml
+              working-directory: ${{ env.WORKING_DIRECTORY }}
+
+            # --- Step 4: Azure App Serviceへのデプロイ ---
+            # azure/webapps-deployアクションを使用してデプロイを実行
+            - name: "Deploy to Azure Web App"
+              uses: azure/webapps-deploy@v3 # 最新のv3を使用
+              with:
+                  # デプロイ先のApp Service名。GitHub Secretsから取得
+                  app-name: ${{ secrets.BACKEND_APP_SERVICE_NAME }}
+
+                  # デプロイするパッケージのパスを指定
+                  package: ${{ env.WORKING_DIRECTORY }}
+
+                  # 認証にはPublish Profileを使用。GitHub Secretsから取得
+                  # シークレット名は、あなたのリポジトリに自動生成されたものに書き換えてください
+                  publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6DCC0D5AF25F45AAA1A5928F255B6215 }}
