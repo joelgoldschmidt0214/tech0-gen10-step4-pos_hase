@@ -9,7 +9,7 @@ RUN pip install uv
 FROM base as builder
 COPY pyproject.toml .
 # --systemでシステム全体にインストールし、後のステージにコピーする
-RUN uv pip install --system --no-cache --from-requirements pyproject.toml
+RUN uv sync --system --no-cache
 
 # --- 最終ステージ (実行環境) ---
 FROM base as final
