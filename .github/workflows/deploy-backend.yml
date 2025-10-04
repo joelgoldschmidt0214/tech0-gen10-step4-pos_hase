@@ -52,6 +52,7 @@ jobs:
               run: |
                   pip install uv
                   uv pip freeze > requirements.txt
+                  pip install -r requirements.txt
               # uv sync --no-cache
               working-directory: ${{ env.WORKING_DIRECTORY }}
 
