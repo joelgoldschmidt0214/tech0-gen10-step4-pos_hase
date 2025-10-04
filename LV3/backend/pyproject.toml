@@ -7,4 +7,5 @@ dependencies = [
     "uvicorn[standard]",
     "sqlalchemy",
     "python-dotenv",
+    "pymysql>=1.1.2",
 ]
