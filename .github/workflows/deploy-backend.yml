@@ -1,0 +1,41 @@
+name: Deploy Backend to Azure
+
+on:
+    # 1. GitHubのUIから手動で実行できるようにする
+    workflow_dispatch:
+        inputs:
+            level:
+                description: "デプロイするレベル"
+                required: true
+                default: "LV3"
+                type: choice
+                options:
+                    - LV1
+                    - LV2
+                    - LV3
+
+    # 2. LV3のバックエンドにpushされたら自動でデプロイする（メイン開発用）
+    push:
+        branches:
+            - main
+        paths:
+            - "LV3/backend/**"
+            - ".github/workflows/deploy-backend.yml"
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
+        defaults:
+            run:
+                working-directory: ./${{ github.event.inputs.level || 'LV3' }}/backend
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: (ここに ${{ github.event.inputs.level || 'LV3' }} のバックエンドのビルド＆デプロイ処理を記述)
+              run: |
+                  echo "Deploying ${{ github.event.inputs.level || 'LV3' }} Backend..."
+                  # ここにDockerビルド、ACRへのプッシュ、Azure App Serviceへのデプロイ処理が入る

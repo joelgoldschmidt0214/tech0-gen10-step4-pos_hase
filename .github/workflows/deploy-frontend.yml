@@ -1,0 +1,43 @@
+name: Deploy Frontend to Azure
+
+on:
+    # 1. GitHubのUIから手動で実行できるようにする
+    workflow_dispatch:
+        inputs:
+            level:
+                description: "デプロイするレベル"
+                required: true
+                default: "LV3"
+                type: choice
+                options:
+                    - LV1
+                    - LV2
+                    - LV3
+
+    # 2. LV3のフロントエンドにpushされたら自動でデプロイする（メイン開発用）
+    push:
+        branches:
+            - main
+        paths:
+            - "LV3/frontend/**"
+            - ".github/workflows/deploy-frontend.yml"
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
+        defaults:
+            run:
+                working-directory: ./${{ github.event.inputs.level || 'LV3' }}/frontend
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: (ここに ${{ github.event.inputs.level || 'LV3' }} のフロントエンドのビルド＆デプロイ処理を記述)
+              run: |
+                  echo "Deploying ${{ github.event.inputs.level || 'LV3' }} Frontend..."
+                  # 例: ls -la
+                  # ここにDockerビルド、ACRへのプッシュ、Azure App Serviceへのデプロイ処理が入る
+                  # Dockerfileのパスも working-directory を基準に指定できる
