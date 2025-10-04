@@ -51,7 +51,7 @@ jobs:
             - name: Install uv and dependencies
               run: |
                   pip install uv
-                  uv sync --system --no-cache
+                  uv sync --no-cache
               working-directory: ${{ env.WORKING_DIRECTORY }}
 
             # --- Step 4: Azure App Serviceへのデプロイ ---
