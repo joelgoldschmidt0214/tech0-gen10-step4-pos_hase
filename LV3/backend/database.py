@@ -3,13 +3,15 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, func
 from sqlalchemy.orm import sessionmaker, declarative_base
 from pydantic import BaseModel
+from pathlib import Path
 
 # .envファイルから環境変数を読み込む
-load_dotenv()
+load_dotenv(override=True)
 
 # --- データベース接続設定 ---
 # .envファイルからDATABASE_URLを取得。なければSQLiteをデフォルトに。
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./local.db")
+BASE_DIR = Path(__file__).resolve().parent
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/local.db")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
