@@ -51,7 +51,7 @@ jobs:
             - name: Install uv and dependencies
               run: |
                   pip install uv
-                  uv pip install --system --no-cache --from-requirements pyproject.toml
+                  uv sync --system --no-cache
               working-directory: ${{ env.WORKING_DIRECTORY }}
 
             # --- Step 4: Azure App Serviceへのデプロイ ---
