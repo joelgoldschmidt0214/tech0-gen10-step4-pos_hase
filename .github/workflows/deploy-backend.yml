@@ -51,7 +51,8 @@ jobs:
             - name: Install uv and dependencies
               run: |
                   pip install uv
-                  uv sync --no-cache
+                  uv pip freeze > requirements.txt
+              # uv sync --no-cache
               working-directory: ${{ env.WORKING_DIRECTORY }}
 
             # デプロイ用のzipファイルを作成する
