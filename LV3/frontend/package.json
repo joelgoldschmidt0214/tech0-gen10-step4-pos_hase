@@ -32,5 +32,12 @@
   "engines": {
     "node": "22.x",
     "pnpm": "10.x"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
