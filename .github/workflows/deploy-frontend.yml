@@ -76,7 +76,7 @@ jobs:
           app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
 
           # デプロイするパッケージのパスを指定
-          package: ${{ env.WORKING_DIRECTORY }}
+          package: ${{ env.WORKING_DIRECTORY }}/.next
 
           # 認証にはPublish Profileを使用。GitHub Secretsから取得
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
