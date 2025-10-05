@@ -53,14 +53,16 @@ jobs:
 
       # --- Step 3: 依存関係のインストール ---
       - name: Install dependencies
-        run: pnpm install
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          cd ${{ env.WORKING_DIRECTORY }}
+          pnpm install
 
       # --- Step 4: Next.jsアプリケーションのビルド ---
       # 本番環境用のAPI URLを環境変数として渡すことが重要
       - name: Build Next.js app
-        run: pnpm build
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          cd ${{ env.WORKING_DIRECTORY }}
+          pnpm build
         env:
           # GitHub Secretsに 'NEXT_PUBLIC_API_URL_PRODUCTION' のような名前で
           # デプロイ済みバックエンドのURLを登録しておく
