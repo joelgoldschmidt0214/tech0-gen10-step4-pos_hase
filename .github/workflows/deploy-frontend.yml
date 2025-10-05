@@ -68,6 +68,17 @@ jobs:
           # デプロイ済みバックエンドのURLを登録しておく
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
+      # デプロイ用のzipファイルを作成する
+      # -r: ディレクトリを再帰的に含める
+      # -D: ディレクトリ内のドットファイルを含めない (例: .venv)
+      # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
+      - name: Create deployment package
+        run: |
+          zip deployment.zip ./* -r \
+            --exclude='node_modules/*' \
+            --exclude='src/*'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
       # --- Step 5: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
@@ -75,8 +86,8 @@ jobs:
           # デプロイ先のApp Service名。GitHub Secretsから取得
           app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
 
-          # デプロイするパッケージのパスを指定
-          package: ${{ env.WORKING_DIRECTORY }}/.next
+          # デプロイ対象をソースコードではなく、作成したzipファイルに変更
+          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
 
           # 認証にはPublish Profileを使用。GitHub Secretsから取得
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
