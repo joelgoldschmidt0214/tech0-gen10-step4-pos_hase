@@ -48,7 +48,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9 # pnpmのバージョンを指定
+          version: 10 # pnpmのバージョンを指定
           run_install: false
 
       # --- Step 3: 依存関係のインストール ---
