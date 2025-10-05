@@ -1,6 +1,8 @@
 # ワークフローの名前
 name: Deploy Backend to Azure
 
+# https://zenn.dev/yey/articles/30b5c68310fa31 を参考にuv利用前提に変更
+
 # ワークフローが実行されるトリガー
 on:
     # 1. GitHubのActionsタブから手動で実行できるようにする
@@ -51,23 +53,23 @@ jobs:
             - name: Install uv and dependencies
               run: |
                   pip install uv
-                  uv pip freeze > requirements.txt
-                  pip install -r requirements.txt
-              # uv sync --no-cache
+                  uv venv antenv
+                  source antenv/bin/activate
+                  uv sync --active
               working-directory: ${{ env.WORKING_DIRECTORY }}
 
             # デプロイ用のzipファイルを作成する
             # -r: ディレクトリを再帰的に含める
             # -D: ディレクトリ内のドットファイルを含めない (例: .venv)
             # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
-            - name: Create deployment package
-              run: |
-                  zip -r deployment.zip . -D \
-                    --exclude='.venv/*' \
-                    --exclude='__pycache__/*' \
-                    --exclude='.git/*' \
-                    --exclude='*.pyc'
-              working-directory: ${{ env.WORKING_DIRECTORY }}
+            # - name: Create deployment package
+            #   run: |
+            #       zip -r deployment.zip . \
+            #         --exclude='.venv/*' \
+            #         --exclude='__pycache__/*' \
+            #         --exclude='.git/*' \
+            #         --exclude='*.pyc'
+            #   working-directory: ${{ env.WORKING_DIRECTORY }}
 
             # --- Step 4: Azure App Serviceへのデプロイ ---
             # azure/webapps-deployアクションを使用してデプロイを実行
@@ -78,7 +80,8 @@ jobs:
                   app-name: ${{ secrets.BACKEND_APP_SERVICE_NAME }}
 
                   # デプロイ対象をソースコードではなく、作成したzipファイルに変更
-                  package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
+                  #   package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
+                  package: ${{ env.WORKING_DIRECTORY }}
 
                   # 認証にはPublish Profileを使用。GitHub Secretsから取得
                   publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6DCC0D5AF25F45AAA1A5928F255B6215 }}
