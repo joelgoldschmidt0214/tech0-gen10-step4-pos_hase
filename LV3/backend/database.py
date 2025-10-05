@@ -1,48 +1,76 @@
 import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, func
-from sqlalchemy.orm import sessionmaker, declarative_base
-from pydantic import BaseModel
 from pathlib import Path
+
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from sqlalchemy import Column, DateTime, Integer, String, create_engine, func
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+BASE_DIR = Path(__file__).resolve().parent
 
 # .envファイルから環境変数を読み込む
 load_dotenv(override=True)
 
 # --- データベース接続設定 ---
-# .envファイルからDATABASE_URLを取得。なければSQLiteをデフォルトに。
-BASE_DIR = Path(__file__).resolve().parent
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/local.db")
+# .envから各設定を読み込む
+DB_TYPE = os.getenv("DB_TYPE", "sqlite")  # どのDBを使うか切り替えるための変数
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+SSL_CERT_PATH = BASE_DIR / "DigiCertGlobalRootG2.crt.pem"
 
-engine = create_engine(DATABASE_URL)
+DATABASE_URL = ""
+
+if DB_TYPE == "mysql":
+  # DB_TYPEがmysqlの場合、MySQL用の接続文字列を組み立てる
+  print("Azure Database for MySQLに接続します...")
+  # SSL接続のための設定を追加
+  connect_args = {"ssl": {"ca": str(SSL_CERT_PATH)}}
+  DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+  engine = create_engine(DATABASE_URL, connect_args=connect_args)
+else:
+  # デフォルト (sqlite) の場合
+  print("ローカル SQLite データベースに接続します...")
+  DATABASE_URL = f"sqlite:///{BASE_DIR}/local.db"
+  engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # --- SQLAlchemyモデル定義 (データベースのテーブル構造) ---
 # Baseを継承してテーブルのモデルクラスを作成します
 
-class Product(Base):
-    """商品マスタモデル"""
-    __tablename__ = 'products'
 
-    id = Column(Integer, primary_key=True, index=True)
-    product_code = Column(String(50), unique=True, index=True, nullable=False)
-    name = Column(String(100), nullable=False)
-    price = Column(Integer, nullable=False) # 税抜価格
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+class Product(Base):
+  """商品マスタモデル"""
+
+  __tablename__ = "products"
+
+  id = Column(Integer, primary_key=True, index=True)
+  product_code = Column(String(50), unique=True, index=True, nullable=False)
+  name = Column(String(100), nullable=False)
+  price = Column(Integer, nullable=False)  # 税抜価格
+  created_at = Column(DateTime, default=func.now())
+  updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
 
 class LocalProduct(Base):
-    """ローカル拡張マスタモデル"""
-    __tablename__ = 'local_products'
+  """ローカル拡張マスタモデル"""
 
-    id = Column(Integer, primary_key=True, index=True)
-    product_code = Column(String(50), unique=True, index=True, nullable=False)
-    name = Column(String(100), nullable=False)
-    price = Column(Integer, nullable=False) # 税抜価格
-    # どの店舗の商品かを識別するためのカラム (将来的拡張性)
-    store_id = Column(String(50), index=True, nullable=False, default="default_store")
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+  __tablename__ = "local_products"
+
+  id = Column(Integer, primary_key=True, index=True)
+  product_code = Column(String(50), unique=True, index=True, nullable=False)
+  name = Column(String(100), nullable=False)
+  price = Column(Integer, nullable=False)  # 税抜価格
+  # どの店舗の商品かを識別するためのカラム (将来的拡張性)
+  store_id = Column(String(50), index=True, nullable=False, default="default_store")
+  created_at = Column(DateTime, default=func.now())
+  updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
 
 # ここに後ほど「取引ヘッダ」「取引明細」モデルも追加していきます
 
@@ -51,29 +79,32 @@ class LocalProduct(Base):
 # APIがJSONとして返すデータの型を定義します
 # SQLAlchemyモデルからデータを読み取れるように `from_attributes = True` を設定します
 
-class ProductSchema(BaseModel):
-    id: int
-    product_code: str
-    name: str
-    price: int
 
-    class Config:
-        from_attributes = True
+class ProductSchema(BaseModel):
+  id: int
+  product_code: str
+  name: str
+  price: int
+
+  class Config:
+    from_attributes = True
+
 
 class LocalProductSchema(BaseModel):
-    id: int
-    product_code: str
-    name: str
-    price: int
-    store_id: str
+  id: int
+  product_code: str
+  name: str
+  price: int
+  store_id: str
 
-    class Config:
-        from_attributes = True
+  class Config:
+    from_attributes = True
+
 
 # --- DBセッションを管理するための関数 ---
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+  db = SessionLocal()
+  try:
+    yield db
+  finally:
+    db.close()
