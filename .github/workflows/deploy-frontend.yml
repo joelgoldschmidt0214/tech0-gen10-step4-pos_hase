@@ -1,43 +1,80 @@
+# ワークフローの名前
 name: Deploy Frontend to Azure
 
+# ワークフローが実行されるトリガー
 on:
-    # 1. GitHubのUIから手動で実行できるようにする
-    workflow_dispatch:
-        inputs:
-            level:
-                description: "デプロイするレベル"
-                required: true
-                default: "LV3"
-                type: choice
-                options:
-                    - LV1
-                    - LV2
-                    - LV3
+  # 1. GitHubのActionsタブから手動で実行できるようにする
+  workflow_dispatch:
+    inputs:
+      level:
+        description: "デプロイするレベル"
+        required: true
+        default: "LV3"
+        type: choice
+        options: [LV1, LV2, LV3]
 
-    # 2. LV3のフロントエンドにpushされたら自動でデプロイする（メイン開発用）
-    push:
-        branches:
-            - main
-        paths:
-            - "LV3/frontend/**"
-            - ".github/workflows/deploy-frontend.yml"
+  # 2. メインブランチの特定ディレクトリにpushされたら自動実行
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-frontend.yml"
+      - "LV3/frontend/**"
 
 jobs:
-    build-and-deploy:
-        runs-on: ubuntu-latest
+  # 'build-and-deploy' という名前のジョブを定義
+  build-and-deploy:
+    # 実行環境はUbuntuの最新版
+    runs-on: ubuntu-latest
 
-        # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
-        defaults:
-            run:
-                working-directory: ./${{ github.event.inputs.level || 'LV3' }}/frontend
+    # ジョブ全体で使う環境変数を設定
+    env:
+      # デプロイ対象のNode.jsバージョン
+      NODE_VERSION: "22.x"
+      # デプロイ対象のディレクトリパスを動的に設定
+      WORKING_DIRECTORY: ./${{ github.event.inputs.level || 'LV3' }}/frontend
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      # --- Step 1: ソースコードのチェックアウト ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: (ここに ${{ github.event.inputs.level || 'LV3' }} のフロントエンドのビルド＆デプロイ処理を記述)
-              run: |
-                  echo "Deploying ${{ github.event.inputs.level || 'LV3' }} Frontend..."
-                  # 例: ls -la
-                  # ここにDockerビルド、ACRへのプッシュ、Azure App Serviceへのデプロイ処理が入る
-                  # Dockerfileのパスも working-directory を基準に指定できる
+      # --- Step 2: Node.jsとpnpmのセットアップ ---
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # pnpmをインストールし、キャッシュを有効化する
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # pnpmのバージョンを指定
+          run_install: false
+
+      # --- Step 3: 依存関係のインストール ---
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+      # --- Step 4: Next.jsアプリケーションのビルド ---
+      # 本番環境用のAPI URLを環境変数として渡すことが重要
+      - name: Build Next.js app
+        run: pnpm build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          # GitHub Secretsに 'NEXT_PUBLIC_API_URL_PRODUCTION' のような名前で
+          # デプロイ済みバックエンドのURLを登録しておく
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
+
+      # --- Step 5: Azure App Serviceへのデプロイ ---
+      - name: "Deploy to Azure Web App"
+        uses: azure/webapps-deploy@v3
+        with:
+          # デプロイ先のApp Service名。GitHub Secretsから取得
+          app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
+
+          # デプロイするパッケージのパスを指定
+          package: ${{ env.WORKING_DIRECTORY }}
+
+          # 認証にはPublish Profileを使用。GitHub Secretsから取得
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
