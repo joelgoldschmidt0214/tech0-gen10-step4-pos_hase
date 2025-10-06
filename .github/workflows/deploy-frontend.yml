@@ -86,7 +86,14 @@ jobs:
       - name: Create deploy output
         run: |
           cd ${{ env.WORKING_DIRECTORY }}
-          pnpm deploy --filter . output --legacy
+          # 依存関係をフラット化
+          pnpm deploy --filter . output --prod
+
+          # Next.js standalone を統合
+          cp -r .next/standalone/* output/
+          mkdir -p output/.next
+          cp -r .next/static output/.next/
+          cp -r public output/
 
       # --- Step 8: ZIPパッケージの作成 ---
       - name: Create deployment package
