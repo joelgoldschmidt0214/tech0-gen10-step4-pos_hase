@@ -47,19 +47,19 @@ jobs:
           cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
           pwd
 
-      # --- Step 3: Node.jsをインストールする ---
+      # --- Step 3: pnpmをインストールする ---
+      - name: Set up pnpm ${{ env.PNPM_VERSION }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      # --- Step 4: Node.jsをインストールする ---
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
           cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/pnpm-lock.yaml
-
-      # --- Step 4: pnpmをインストールする ---
-      - name: Set up pnpm ${{ env.PNPM_VERSION }}
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       # --- Step 5: 依存関係のインストール ---
       - name: Install dependencies
