@@ -93,6 +93,7 @@ jobs:
         run: |
           cd ${{ env.WORKING_DIRECTORY }}/output
           pwd  # 現在のディレクトリを確認
+          tree -L 2 -I 'node_modules'
           zip -ryq ../deployment.zip ./*
 
       # --- Step 9: Azure App Serviceへのデプロイ ---
