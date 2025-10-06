@@ -74,14 +74,20 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
-      # --- Step 6: ZIPパッケージの作成 ---
+      # --- Step 6: pnpm deploy で本番用パッケージを作成 ---
+      - name: Create deploy output
+        run: |
+          cd ${{ env.WORKING_DIRECTORY }}
+          pnpm deploy --filter . output
+
+      # --- Step 7: ZIPパッケージの作成 ---
       - name: Create deployment package
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}/.next/standalone  # 確実に正しいディレクトリに移動
+          cd ${{ env.WORKING_DIRECTORY }}/output
           pwd  # 現在のディレクトリを確認
-          zip -ry ../../deployment.zip ./*
+          zip -ryq ../deployment.zip ./*
 
-      # --- Step 7: Azure App Serviceへのデプロイ ---
+      # --- Step 8: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
