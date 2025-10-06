@@ -62,20 +62,41 @@ jobs:
       - name: Build Next.js app
         run: |
           cd ${{ env.WORKING_DIRECTORY }}
+          # 環境変数の存在確認を追加
+          if [ -z "${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}" ]; then
+            echo "Error: NEXT_PUBLIC_API_URL_PRODUCTION is not set"
+            exit 1
+          fi
           pnpm build
         env:
-          # GitHub Secretsに 'NEXT_PUBLIC_API_URL_PRODUCTION' のような名前で
-          # デプロイ済みバックエンドのURLを登録しておく
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
       # デプロイ用のzipファイルを作成する
       - name: Create deployment package
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}/.next/standalone
-          # standaloneビルドの内容をzipに含める
-          zip -r deployment.zip ./* \
-            ../.next/static ./_next/static ./public \
-            --exclude='node_modules/*'
+          cd ${{ env.WORKING_DIRECTORY }}
+          # まずstandaloneディレクトリの内容をコピー
+          mkdir -p deploy
+          cp -r .next/standalone/* deploy/
+          cp -r .next/static deploy/.next/
+          cp -r public deploy/
+
+          # デプロイフォルダの構造を確認
+          echo "=== Checking deploy folder structure ==="
+          # 不要なnode_modulesとcacheディレクトリを除外
+          tree -L 3 -I 'node_modules|cache' deploy/
+
+          # .nextディレクトリの構造を確認（静的ファイルのみ）
+          echo "=== Checking .next/static directory ==="
+          tree -L 2 deploy/.next/static
+
+          # デプロイパッケージを作成
+          cd deploy
+          zip -r ../deployment.zip ./*
+
+          # 作成したZIPファイルの情報を確認
+          echo "=== Checking deployment.zip ==="
+          ls -lh ../deployment.zip
 
       # --- Step 5: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
@@ -83,5 +104,5 @@ jobs:
         with:
           app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
           # パスを修正
-          package: ${{ env.WORKING_DIRECTORY }}/.next/standalone/deployment.zip
+          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
