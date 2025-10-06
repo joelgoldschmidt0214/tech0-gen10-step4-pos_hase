@@ -33,39 +33,44 @@ jobs:
       # pnpmバージョン
       PNPM_VERSION: "10.x"
       # デプロイ対象のディレクトリパスを動的に設定
-      WORKING_DIRECTORY: ./${{ github.event.inputs.level || 'LV3' }}/frontend
+      WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend # 絶対パスに変更
 
     steps:
       # --- Step 1: ソースコードのチェックアウト ---
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # pnpmをインストールし、キャッシュを有効化する
+      # --- Step 2: 現在のディレクトリを確認 ---
+      - name: Check current directory
+        run: pwd
+
+      # --- Step 3: pnpmをインストールし、キャッシュを有効化する ---
       - name: Set up pnpm ${{ env.PNPM_VERSION }}
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      # --- Step 2: Node.jsとpnpmのセットアップ ---
+      # --- Step 4: Node.jsのセットアップ ---
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # --- Step 3: 依存関係のインストール ---
+      # --- Step 5: 依存関係のインストール ---
       - name: Install dependencies
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}
+          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
+          pwd  # 現在のディレクトリを確認
           pnpm install --frozen-lockfile
           pnpm -r build
 
-      # --- Step 4: Next.jsアプリケーションのビルド ---
+      # --- Step 6: Next.jsアプリケーションのビルド ---
       # 本番環境用のAPI URLを環境変数として渡すことが重要
       - name: Build Next.js app
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}
-          # 環境変数の存在確認を追加
+          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
+          pwd  # 現在のディレクトリを確認
           if [ -z "${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}" ]; then
             echo "Error: NEXT_PUBLIC_API_URL_PRODUCTION is not set"
             exit 1
@@ -74,16 +79,17 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
-      # --- Step 5: ZIPパッケージの作成 ---
+      # --- Step 7: ZIPパッケージの作成 ---
       - name: Create deployment package
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}/.next/standalone
-          zip -ry ../../deployment.zip ./*  # 2階層上に移動してZIPを作成
+          cd ${{ env.WORKING_DIRECTORY }}/.next/standalone  # 確実に正しいディレクトリに移動
+          pwd  # 現在のディレクトリを確認
+          zip -ry ../../deployment.zip ./*
 
-      # --- Step 6: Azure App Serviceへのデプロイ ---
+      # --- Step 8: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
-          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip # 1階層下に移動したZIPを参照
+          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
