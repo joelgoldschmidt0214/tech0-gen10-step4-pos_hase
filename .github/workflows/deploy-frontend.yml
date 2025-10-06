@@ -64,7 +64,7 @@ jobs:
       # --- Step 5: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
         run: |
-          # cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
+          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
           pwd  # 現在のディレクトリを確認
           if [ -z "${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}" ]; then
             echo "Error: NEXT_PUBLIC_API_URL_PRODUCTION is not set"
