@@ -74,10 +74,11 @@ jobs:
       # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
       - name: Create deployment package
         run: |
-          zip deployment.zip ./* -r \
-            --exclude='node_modules/*' \
-            --exclude='src/*'
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+          cd ${{ env.WORKING_DIRECTORY }}/.next/standalone
+          # standaloneビルドの内容をzipに含める
+          zip -r ../../../deployment.zip ./* \
+            ../.next/static ./_next/static ./public \
+            --exclude='node_modules/*'
 
       # --- Step 5: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
