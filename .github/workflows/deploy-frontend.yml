@@ -53,23 +53,15 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      # --- Step 4: Node.jsのセットアップ ---
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      # --- Step 5: 依存関係のインストール ---
+      # --- Step 4: 依存関係のインストール ---
       - name: Install dependencies
         run: |
-          # cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
+          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
           pwd  # 現在のディレクトリを確認
           pnpm install --frozen-lockfile
           pnpm -r build
 
-      # --- Step 6: Next.jsアプリケーションのビルド ---
-      # 本番環境用のAPI URLを環境変数として渡すことが重要
+      # --- Step 5: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
         run: |
           # cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
@@ -82,14 +74,14 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
-      # --- Step 7: ZIPパッケージの作成 ---
+      # --- Step 6: ZIPパッケージの作成 ---
       - name: Create deployment package
         run: |
           cd ${{ env.WORKING_DIRECTORY }}/.next/standalone  # 確実に正しいディレクトリに移動
           pwd  # 現在のディレクトリを確認
           zip -ry ../../deployment.zip ./*
 
-      # --- Step 8: Azure App Serviceへのデプロイ ---
+      # --- Step 7: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
