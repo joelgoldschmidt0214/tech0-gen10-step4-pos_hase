@@ -69,14 +69,11 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
       # デプロイ用のzipファイルを作成する
-      # -r: ディレクトリを再帰的に含める
-      # -D: ディレクトリ内のドットファイルを含めない (例: .venv)
-      # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
       - name: Create deployment package
         run: |
           cd ${{ env.WORKING_DIRECTORY }}/.next/standalone
           # standaloneビルドの内容をzipに含める
-          zip -r ../../../deployment.zip ./* \
+          zip -r deployment.zip ./* \
             ../.next/static ./_next/static ./public \
             --exclude='node_modules/*'
 
@@ -84,11 +81,7 @@ jobs:
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
-          # デプロイ先のApp Service名。GitHub Secretsから取得
           app-name: ${{ secrets.FRONTEND_APP_SERVICE_NAME }}
-
-          # デプロイ対象をソースコードではなく、作成したzipファイルに変更
-          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
-
-          # 認証にはPublish Profileを使用。GitHub Secretsから取得
+          # パスを修正
+          package: ${{ env.WORKING_DIRECTORY }}/.next/standalone/deployment.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9ACA2A907F9C4DF89ADE05588C89F2CE }}
