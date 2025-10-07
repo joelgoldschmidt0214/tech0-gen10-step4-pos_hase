@@ -13,8 +13,8 @@ app = FastAPI()
 # バックエンド(FastAPI)の http://localhost:8000 へアクセスするのを許可します。
 # これがないと、ブラウザのセキュリティ機能によりAPIリクエストがブロックされます。
 origins = [
-  "http://localhost:3000",
-  # ここに将来デプロイするフロントエンドのURLも追加する可能性があります
+  "http://localhost:3000",  # 開発用
+  "https://app-002-gen10-step3-1-node-oshima5.azurewebsites.net",  # 本番用
 ]
 
 app.add_middleware(
