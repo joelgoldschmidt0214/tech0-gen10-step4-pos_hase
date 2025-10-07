@@ -76,7 +76,7 @@ jobs:
           cp -r $STANDALONE_PROJECT_PATH/LV3/frontend/. "$DEPLOY_ROOT/"
           cp -r $STANDALONE_PROJECT_PATH/node_modules "$DEPLOY_ROOT/"
           # 2. static ディレクトリもコピー
-          cp -r ${{ env.WORKING_DIRECTORY }}/.next/static "$DEPLOY_ROOT/"
+          cp -r ${{ env.WORKING_DIRECTORY }}/.next/static "$DEPLOY_ROOT/.next/"
           # 3. public ディレクトリもコピー
           cp -r ${{ env.WORKING_DIRECTORY }}/public "$DEPLOY_ROOT/"
           # 4. ディレクトリ構造の確認（デバッグ用）
