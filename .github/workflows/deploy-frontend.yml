@@ -31,7 +31,7 @@ jobs:
       # --- 動的な値もenvで定義可能 ---
       TARGET_LEVEL: LV${{ github.event.inputs.level || '3' }}
       # package.jsonのnameフィールドに合わせる (例: lv3-frontend)
-      PACKAGE_NAME: ${{ github.event.inputs.level || '3' }}-frontend
+      PACKAGE_NAME: lv${{ github.event.inputs.level || '3' }}-frontend
       # 対象パッケージのワーキングディレクトリパス
       WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend
 
