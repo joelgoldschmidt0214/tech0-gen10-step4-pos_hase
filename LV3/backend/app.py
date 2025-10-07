@@ -3,7 +3,7 @@ import database
 from database import get_db
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: TC002
 
 # --- FastAPIアプリケーションの初期化 ---
 app = FastAPI()
@@ -34,11 +34,12 @@ app.add_middleware(
 # {product_code} は、URLの一部として渡される動的な値（パスパラメータ）です。
 # response_model=database.ProductSchema は、このAPIが返すJSONの形式を定義します。
 @app.get("/api/v1/products/{product_code}", response_model=database.ProductSchema)
-def get_product(product_code: str, db: Session = Depends(get_db)):
+def get_product(product_code: str):
   """
   指定された商品コードに基づいて、商品を検索するAPI。
   まず商品マスタを検索し、見つからなければローカル拡張マスタを検索する。
   """
+  db: Session = Depends(get_db)
   print(f"商品コード検索: {product_code}")  # 動作確認用のログ
 
   # 1. まずは通常の商品マスタ (productsテーブル) を検索
