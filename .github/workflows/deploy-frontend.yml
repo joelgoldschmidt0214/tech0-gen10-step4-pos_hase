@@ -90,7 +90,7 @@ jobs:
           tree -a -L 2
 
           # 5. ZIPパッケージの作成
-          zip -ryq ${{ env.WORKING_DIRECTORY }}/deployment.zip ./*
+          zip -ryq ${{ env.WORKING_DIRECTORY }}/deployment.zip .
 
       # --- Step 7: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
