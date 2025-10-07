@@ -21,88 +21,65 @@ on:
       - "LV3/frontend/**"
 
 jobs:
-  # 'build-and-deploy' という名前のジョブを定義
   build-and-deploy:
-    # 実行環境はUbuntuの最新版
     runs-on: ubuntu-latest
 
-    # ジョブ全体で使う環境変数を設定
+    # --- ファイル内で使える環境変数の定義 ---
     env:
-      # デプロイ対象のNode.jsバージョン
       NODE_VERSION: "22.x"
-      # pnpmバージョン
       PNPM_VERSION: "10.x"
-      # デプロイ対象のディレクトリパスを動的に設定
-      WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend # 絶対パスに変更
+      # --- 動的な値もenvで定義可能 ---
+      TARGET_LEVEL: ${{ github.event.inputs.level || 'LV3' }}
+      # package.jsonのnameフィールドに合わせる (例: lv3-frontend)
+      PACKAGE_NAME: lv${{ github.event.inputs.level || '3' }}-frontend
+      # 対象パッケージのワーキングディレクトリパス
+      WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend
 
     steps:
       # --- Step 1: ソースコードのチェックアウト ---
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Step 2: 現在のディレクトリを確認 ---
-      - name: Check current directory
-        run: |
-          pwd
-          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
-          pwd
-
-      # --- Step 3: pnpmをインストールする ---
-      - name: Set up pnpm ${{ env.PNPM_VERSION }}
+      # --- Step 2: pnpmのインストール ---
+      - name: Set up pnpm v${{ env.PNPM_VERSION }}
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      # --- Step 4: Node.jsをインストールする ---
-      - name: Set up Node.js
+      # --- Step 3: Node.jsのインストール ---
+      - name: Set up Node.js v${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
-      # --- Step 5: 依存関係のインストール ---
+      # --- Step 4: 依存関係のインストール ---
       - name: Install dependencies
-        run: |
-          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
-          pwd  # 現在のディレクトリを確認
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      # --- Step 6: Next.jsアプリケーションのビルド ---
+      # --- Step 5: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
-        run: |
-          cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
-          pwd  # 現在のディレクトリを確認
-          if [ -z "${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}" ]; then
-            echo "Error: NEXT_PUBLIC_API_URL_PRODUCTION is not set"
-            exit 1
-          fi
-          pnpm build
+        run: pnpm --filter ${{ env.PACKAGE_NAME }} build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
-      # --- Step 7: pnpm deploy で本番用パッケージを作成 ---
+      # --- Step 6: pnpm deploy で本番用パッケージを作成 ---
       - name: Create deploy output
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}
-          # 依存関係をフラット化
-          pnpm deploy output --prod
+          pnpm deploy --filter ${{ env.PACKAGE_NAME }} --prod ${{ env.WORKING_DIRECTORY }}/output
+          cp -r ${{ env.WORKING_DIRECTORY }}/.next/standalone/* ${{ env.WORKING_DIRECTORY }}/output/
+          mkdir -p ${{ env.WORKING_DIRECTORY }}/output/.next
+          cp -r ${{ env.WORKING_DIRECTORY }}/.next/static ${{ env.WORKING_DIRECTORY }}/output/.next/
+          cp -r ${{ env.WORKING_DIRECTORY }}/public ${{ env.WORKING_DIRECTORY }}/output/
 
-          # Next.js standalone を統合
-          cp -r .next/standalone/* output/
-          mkdir -p output/.next
-          cp -r .next/static output/.next/
-          cp -r public output/
-
-      # --- Step 8: ZIPパッケージの作成 ---
+      # --- Step 7: ZIPパッケージの作成 ---
       - name: Create deployment package
         run: |
           cd ${{ env.WORKING_DIRECTORY }}/output
-          pwd  # 現在のディレクトリを確認
-          tree -L 2 -I 'node_modules'
           zip -ryq ../deployment.zip ./*
 
-      # --- Step 9: Azure App Serviceへのデプロイ ---
+      # --- Step 8: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
