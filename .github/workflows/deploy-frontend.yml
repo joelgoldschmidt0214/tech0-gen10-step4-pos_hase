@@ -73,23 +73,14 @@ jobs:
           mkdir -p "$DEPLOY_ROOT"
 
           # 1. 必要なファイルをdeploy-rootにコピー
-          cp -r $STANDALONE_PROJECT_PATH/LV3/frontend/* "$DEPLOY_ROOT/"
+          cp -r $STANDALONE_PROJECT_PATH/LV3/frontend/. "$DEPLOY_ROOT/"
           cp -r $STANDALONE_PROJECT_PATH/node_modules "$DEPLOY_ROOT/"
-
-          # 2. .next の必要な部分をコピー
-          mkdir -p "$DEPLOY_ROOT/.next"
-          cp -r ${{ env.WORKING_DIRECTORY }}/.next/static "$DEPLOY_ROOT/.next/"
-          cp ${{ env.WORKING_DIRECTORY }}/.next/BUILD_ID "$DEPLOY_ROOT/.next/"
-          cp -r ${{ env.WORKING_DIRECTORY }}/.next/server "$DEPLOY_ROOT/.next/"
-
-          # 3. public もコピー
+          # 2. public もコピー
           cp -r ${{ env.WORKING_DIRECTORY }}/public "$DEPLOY_ROOT/"
-
-          # 4. ディレクトリ構造の確認（デバッグ用）
+          # 3. ディレクトリ構造の確認（デバッグ用）
           cd "$DEPLOY_ROOT"
           tree -a -L 2
-
-          # 5. ZIPパッケージの作成
+          # 4. ZIPパッケージの作成
           zip -ryq ${{ env.WORKING_DIRECTORY }}/deployment.zip .
 
       # --- Step 7: Azure App Serviceへのデプロイ ---
