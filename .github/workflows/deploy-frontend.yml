@@ -68,29 +68,19 @@ jobs:
       - name: Create deploy output
         run: |
           # 1. standalone ディレクトリに移動
-          STANDALONE_PROJECT_PATH=${{ env.WORKING_DIRECTORY }}/.next/standalone/${{ env.TARGET_LEVEL}}/frontend
-          cd "$STANDALONE_PROJECT_PATH"
+          STANDALONE_PROJECT_PATH=${{ env.WORKING_DIRECTORY }}/.next/standalone
+          mkdir -p ${{ env.WORKING_DIRECTORY }}/deploy-root
+          cp -r $STANDALONE_PROJECT_PATH/LV3/frontend/* ${{ env.WORKING_DIRECTORY }}/deploy-root/
+          cp -r $STANDALONE_PROJECT_PATH/node_modules ${{ env.WORKING_DIRECTORY }}/deploy-root/
+          cd ${{ env.WORKING_DIRECTORY }}/deploy-root
 
-          # 2. 本番用の依存関係をインストール
-          #    ルートの .npmrc に書かれた "node-linker=hoisted" の設定が自動で適用され、
-          #    シンボリックリンクのない、フラットな node_modules が生成される。
-          pnpm install --prod
+          # 2. ディレクトリ構造の確認（デバッグ用）
+          tree -a -L 2
 
-          # 3. public と .next/static を standalone ディレクトリ内にコピーして自己完結させる
-          cd ${{ env.WORKING_DIRECTORY }}
-
-          cp -r public "$STANDALONE_PROJECT_PATH"
-          mkdir -p "$STANDALONE_PROJECT_PATH/.next"
-          cp -r .next/static "$STANDALONE_PROJECT_PATH/.next/"
-
-      # --- Step 7: ZIPパッケージの作成 ---
-      - name: Create deployment package
-        run: |
-          STANDALONE_PROJECT_PATH=${{ env.WORKING_DIRECTORY }}/.next/standalone/${{ env.TARGET_LEVEL}}/frontend
-          cd "$STANDALONE_PROJECT_PATH"
+          # 3. ZIPパッケージの作成
           zip -ryq ${{ env.WORKING_DIRECTORY }}/deployment.zip ./*
 
-      # --- Step 8: Azure App Serviceへのデプロイ ---
+      # --- Step 7: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         with:
