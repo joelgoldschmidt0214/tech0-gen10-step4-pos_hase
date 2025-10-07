@@ -5,81 +5,81 @@ name: Deploy Backend to Azure
 
 # ワークフローが実行されるトリガー
 on:
-    # 1. GitHubのActionsタブから手動で実行できるようにする
-    workflow_dispatch:
-        inputs:
-            level:
-                description: "デプロイするレベル"
-                required: true
-                default: "LV3"
-                type: choice
-                options: [LV1, LV2, LV3]
+  # 1. GitHubのActionsタブから手動で実行できるようにする
+  workflow_dispatch:
+    inputs:
+      level:
+        description: "デプロイするレベル"
+        required: true
+        default: "LV3"
+        type: choice
+        options: [LV1, LV2, LV3]
 
-    # 2. メインブランチの特定ディレクトリにpushされたら自動実行
-    push:
-        branches: [main]
-        paths:
-            # このワークフローファイル自体か、LV3/backendディレクトリに変更があった場合のみ実行
-            - ".github/workflows/deploy-backend.yml"
-            - "LV3/backend/**"
+  # 2. メインブランチの特定ディレクトリにpushされたら自動実行
+  push:
+    branches: [main]
+    paths:
+      # このワークフローファイル自体か、LV3/backendディレクトリに変更があった場合のみ実行
+      - ".github/workflows/deploy-backend.yml"
+      - "LV3/backend/**"
 
 jobs:
-    # 'build-and-deploy' という名前のジョブを定義
-    build-and-deploy:
-        # 実行環境はUbuntuの最新版
-        runs-on: ubuntu-latest
+  # 'build-and-deploy' という名前のジョブを定義
+  build-and-deploy:
+    # 実行環境はUbuntuの最新版
+    runs-on: ubuntu-latest
 
-        # ジョブ全体で使う環境変数を設定
-        env:
-            # デプロイ対象のPythonバージョン
-            PYTHON_VERSION: "3.12"
-            # デプロイ対象のディレクトリパスを動的に設定
-            # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
-            WORKING_DIRECTORY: ./${{ github.event.inputs.level || 'LV3' }}/backend
+    # ジョブ全体で使う環境変数を設定
+    env:
+      # デプロイ対象のPythonバージョン
+      PYTHON_VERSION: "3.12"
+      # デプロイ対象のディレクトリパスを動的に設定
+      # 手動実行時は選択されたレベルを、自動実行時は'LV3'をデフォルトとして使用
+      WORKING_DIRECTORY: ./${{ github.event.inputs.level || 'LV3' }}/backend
 
-        steps:
-            # --- Step 1: ソースコードのチェックアウト ---
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      # --- Step 1: ソースコードのチェックアウト ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            # --- Step 2: Pythonのセットアップ ---
-            - name: Set up Python ${{ env.PYTHON_VERSION }}
-              uses: actions/setup-python@v5
-              with:
-                  python-version: ${{ env.PYTHON_VERSION }}
+      # --- Step 2: Pythonのセットアップ ---
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-            # --- Step 3: 依存関係のインストール (uvを使用) ---
-            - name: Install uv
-              uses: astral-sh/setup-uv@v5
+      # --- Step 3: 依存関係のインストール (uvを使用) ---
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-            - name: Generate requirements.txt
-              run: uv pip compile pyproject.toml -o requirements.txt
-              working-directory: ${{ env.WORKING_DIRECTORY }}
+      - name: Generate requirements.txt
+        run: uv pip compile pyproject.toml -o requirements.txt
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
-            # デプロイ用のzipファイルを作成する
-            # -r: ディレクトリを再帰的に含める
-            # -D: ディレクトリ内のドットファイルを含めない (例: .venv)
-            # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
-            - name: Create deployment package
-              run: |
-                  zip deployment.zip ./* -r \
-                    --exclude='.venv/*' \
-                    --exclude='__pycache__/*' \
-                    --exclude='.git/*' \
-                    --exclude='*.pyc'
-              working-directory: ${{ env.WORKING_DIRECTORY }}
+      # デプロイ用のzipファイルを作成する
+      # -r: ディレクトリを再帰的に含める
+      # -D: ディレクトリ内のドットファイルを含めない (例: .venv)
+      # --exclude='.venv/*' --exclude='__pycache__/*': 特定のフォルダを除外する
+      - name: Create deployment package
+        run: |
+          zip deployment.zip ./* -r \
+            --exclude='.venv/*' \
+            --exclude='__pycache__/*' \
+            --exclude='.git/*' \
+            --exclude='*.pyc'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
-            # --- Step 4: Azure App Serviceへのデプロイ ---
-            # azure/webapps-deployアクションを使用してデプロイを実行
-            - name: "Deploy to Azure Web App"
-              uses: azure/webapps-deploy@v3 # 最新のv3を使用
-              with:
-                  # デプロイ先のApp Service名。GitHub Secretsから取得
-                  app-name: ${{ secrets.BACKEND_APP_SERVICE_NAME }}
+      # --- Step 4: Azure App Serviceへのデプロイ ---
+      # azure/webapps-deployアクションを使用してデプロイを実行
+      - name: "Deploy to Azure Web App"
+        uses: azure/webapps-deploy@v3 # 最新のv3を使用
+        with:
+          # デプロイ先のApp Service名。GitHub Secretsから取得
+          app-name: ${{ secrets.BACKEND_APP_SERVICE_NAME }}
 
-                  # デプロイ対象をソースコードではなく、作成したzipファイルに変更
-                  package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
-                  # package: ${{ env.WORKING_DIRECTORY }}
+          # デプロイ対象をソースコードではなく、作成したzipファイルに変更
+          package: ${{ env.WORKING_DIRECTORY }}/deployment.zip
+          # package: ${{ env.WORKING_DIRECTORY }}
 
-                  # 認証にはPublish Profileを使用。GitHub Secretsから取得
-                  publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6DCC0D5AF25F45AAA1A5928F255B6215 }}
+          # 認証にはPublish Profileを使用。GitHub Secretsから取得
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6DCC0D5AF25F45AAA1A5928F255B6215 }}

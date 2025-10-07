@@ -1,0 +1,11 @@
+{
+    "name": "tech0-gen10-step4-pos_hase-frontend",
+    "private": true,
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "@tailwindcss/oxide",
+            "sharp",
+            "unrs-resolver"
+        ]
+    }
+}
