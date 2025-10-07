@@ -33,7 +33,7 @@ jobs:
       # package.jsonのnameフィールドに合わせる (例: lv3-frontend)
       PACKAGE_NAME: lv${{ github.event.inputs.level || '3' }}-frontend
       # 対象パッケージのワーキングディレクトリパス
-      WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend
+      WORKING_DIRECTORY: ${{ github.workspace }}/LV${{ github.event.inputs.level || '3' }}/frontend
 
     steps:
       # --- Step 1: ソースコードのチェックアウト ---
@@ -64,20 +64,31 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL_PRODUCTION }}
 
-      # --- Step 6: pnpm deploy で本番用パッケージを作成 ---
+      # --- Step 6: 本番用パッケージを作成 ---
       - name: Create deploy output
         run: |
-          pnpm deploy --filter ${{ env.PACKAGE_NAME }} --prod ${{ env.WORKING_DIRECTORY }}/output
-          cp -r ${{ env.WORKING_DIRECTORY }}/.next/standalone/* ${{ env.WORKING_DIRECTORY }}/output/
-          mkdir -p ${{ env.WORKING_DIRECTORY }}/output/.next
-          cp -r ${{ env.WORKING_DIRECTORY }}/.next/static ${{ env.WORKING_DIRECTORY }}/output/.next/
-          cp -r ${{ env.WORKING_DIRECTORY }}/public ${{ env.WORKING_DIRECTORY }}/output/
+          # 1. standalone ディレクトリに移動
+          STANDALONE_PROJECT_PATH=${{ env.WORKING_DIRECTORY }}/.next/standalone/${{ env.TARGET_LEVEL}}/frontend
+          cd "$STANDALONE_PROJECT_PATH"
+
+          # 2. 本番用の依存関係をインストール
+          #    ルートの .npmrc に書かれた "node-linker=hoisted" の設定が自動で適用され、
+          #    シンボリックリンクのない、フラットな node_modules が生成される。
+          pnpm install --prod
+
+          # 3. public と .next/static を standalone ディレクトリ内にコピーして自己完結させる
+          cd ${{ env.WORKING_DIRECTORY }}
+
+          cp -r public "$STANDALONE_PROJECT_PATH"
+          mkdir -p "$STANDALONE_PROJECT_PATH/.next"
+          cp -r .next/static "$STANDALONE_PROJECT_PATH/.next/"
 
       # --- Step 7: ZIPパッケージの作成 ---
       - name: Create deployment package
         run: |
-          cd ${{ env.WORKING_DIRECTORY }}/output
-          zip -ryq ../deployment.zip ./*
+          STANDALONE_PROJECT_PATH=${{ env.WORKING_DIRECTORY }}/.next/standalone/${{ env.TARGET_LEVEL}}/frontend
+          cd "$STANDALONE_PROJECT_PATH"
+          zip -ryq ${{ env.WORKING_DIRECTORY }}/deployment.zip ./*
 
       # --- Step 8: Azure App Serviceへのデプロイ ---
       - name: "Deploy to Azure Web App"
