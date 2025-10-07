@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       level:
-        description: "デプロイするレベル"
+        description: "デプロイするレベル: LV"
         required: true
-        default: "LV3"
+        default: "3"
         type: choice
-        options: [LV1, LV2, LV3]
+        options: ["1", "2", "3"]
 
   # 2. メインブランチの特定ディレクトリにpushされたら自動実行
   push:
@@ -29,9 +29,9 @@ jobs:
       NODE_VERSION: "22.x"
       PNPM_VERSION: "10.x"
       # --- 動的な値もenvで定義可能 ---
-      TARGET_LEVEL: ${{ github.event.inputs.level || 'LV3' }}
+      TARGET_LEVEL: LV${{ github.event.inputs.level || '3' }}
       # package.jsonのnameフィールドに合わせる (例: lv3-frontend)
-      PACKAGE_NAME: lv${{ github.event.inputs.level || '3' }}-frontend
+      PACKAGE_NAME: ${{ github.event.inputs.level || '3' }}-frontend
       # 対象パッケージのワーキングディレクトリパス
       WORKING_DIRECTORY: ${{ github.workspace }}/${{ github.event.inputs.level || 'LV3' }}/frontend
 
