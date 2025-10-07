@@ -67,7 +67,6 @@ jobs:
           cd ${{ env.WORKING_DIRECTORY }}  # 確実に正しいディレクトリに移動
           pwd  # 現在のディレクトリを確認
           pnpm install --frozen-lockfile
-          pnpm -r build
 
       # --- Step 6: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
@@ -87,7 +86,7 @@ jobs:
         run: |
           cd ${{ env.WORKING_DIRECTORY }}
           # 依存関係をフラット化
-          pnpm deploy --filter . output --prod
+          pnpm deploy output --prod
 
           # Next.js standalone を統合
           cp -r .next/standalone/* output/
