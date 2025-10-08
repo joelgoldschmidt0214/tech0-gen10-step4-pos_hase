@@ -128,29 +128,29 @@ export const Header = ({
       </div>
 
       {/* 単価・数量表示（横並び） */}
-      <div className="flex gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <input
           type="text"
           value={productPrice}
           readOnly
           placeholder="単価"
-          className="flex-1 py-3 border rounded-lg text-lg bg-gray-100 text-center"
+          className="w-full py-3 border rounded-lg text-lg bg-gray-100 text-center"
         />
         <input
           type="text"
           value={productQuantity}
           readOnly
           placeholder="数量"
-          className="flex-1 py-3 border rounded-lg text-lg bg-gray-100 text-center"
+          className="w-full py-3 border rounded-lg text-lg bg-gray-100 text-center"
         />
       </div>
 
       {/* リスト削除・数量変更ボタン（横並び） */}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={onRemoveAll}
           disabled={purchaseListLength === 0}
-          className={`flex-1 py-2 rounded-lg font-bold ${
+          className={`w-full py-2 rounded-lg font-bold ${
             purchaseListLength === 0
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-red-500 text-white hover:bg-red-600"
@@ -161,7 +161,7 @@ export const Header = ({
         <button
           onClick={onChangeQuantityModal}
           disabled={purchaseListLength === 0}
-          className={`flex-1 py-2 rounded-lg font-bold ${
+          className={`w-full py-2 rounded-lg font-bold ${
             purchaseListLength === 0
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-blue-500 text-white hover:bg-blue-600"

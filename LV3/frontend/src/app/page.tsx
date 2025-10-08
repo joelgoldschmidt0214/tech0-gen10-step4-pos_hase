@@ -195,7 +195,7 @@ export default function PosPage() {
 
       <main className="flex-1 p-4 overflow-y-auto flex flex-col items-center">
         {/* 購入リスト */}
-        <div className="w-full max-w-xl mb-4">
+        <div className="w-full mb-4">
           <PurchaseList
             items={purchaseList}
             onItemSelect={handleSelectItem} // 名前を変更
@@ -205,15 +205,15 @@ export default function PosPage() {
 
       {/* 合計金額表示（フッターの左:ラベル、右:金額） */}
       <footer className="bg-white border-t border-gray-200 flex flex-col items-center">
-        <div className="w-90% max-w-xl flex items-center py-3 px-2">
-          <span className="text-gray-600 pr-5 text-lg">合計</span>
-          <p className="py-1 text-3xl font-bold text-gray-900 border-1 w-100 text-center">
-            {totalPrice.toLocaleString()}円
-          </p>
-        </div>
-        <div className="w-full max-w-xl flex justify-center pb-4">
+        <div className="w-full p-4 space-y-4">
+          <div className="flex items-center">
+            <span className="text-gray-600 pr-5 text-lg">合計</span>
+            <p className="flex-1 py-1 text-3xl font-bold text-gray-900 border text-center rounded-lg">
+              {totalPrice.toLocaleString()}円
+            </p>
+          </div>
           <button
-            className={`w-full px-10 py-5 text-white font-bold text-2xl rounded-lg transition ${
+            className={`w-full py-4 text-white font-bold text-2xl rounded-lg transition ${
               purchaseList.length === 0
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-blue-500 hover:bg-blue-600"
