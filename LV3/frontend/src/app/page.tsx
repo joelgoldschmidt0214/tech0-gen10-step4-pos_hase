@@ -146,6 +146,11 @@ export default function PosPage() {
     setPurchaseList(newList);
   };
 
+  // 税率
+  const taxRate = 0.1;
+  const totalPriceWithoutTax = Math.round(totalPrice / (1 + taxRate));
+  const totalPriceWithTax = totalPrice;
+
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans">
       <Header onScan={handleScan} onMessage={showToast} />
@@ -162,8 +167,13 @@ export default function PosPage() {
         </div>
         <div className="flex space-x-2">
           <button
-            className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg"
-            onClick={handlePurchase} // クリックイベントハンドラーを追加
+            className={`px-10 py-4 text-white font-bold text-lg rounded-lg ${
+              purchaseList.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600"
+            }`}
+            onClick={handlePurchase}
+            disabled={purchaseList.length === 0}
           >
             購入
           </button>
@@ -171,10 +181,43 @@ export default function PosPage() {
       </footer>
 
       {/* モーダル表示 */}
-      <Modal isOpen={modalIsOpen} onRequestClose={closeModal}>
-        <h2>購入確認</h2>
-        <p>合計金額: ¥{totalPrice}</p>
-        <button onClick={closeModal}>OK</button>
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={closeModal}
+        style={{
+          content: {
+            maxWidth: "350px",
+            margin: "auto",
+            padding: "2rem 1.5rem 1.5rem 1.5rem",
+            borderRadius: "1rem",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
+            inset: "50% auto auto 50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+          },
+          overlay: {
+            backgroundColor: "rgba(0,0,0,0.3)",
+            zIndex: 1000,
+          },
+        }}
+      >
+        <h2 className="text-xl font-bold mb-4">購入確認</h2>
+        <div className="mb-2 text-lg">
+          <span className="text-gray-700">合計金額（税込）:</span>
+          <span className="font-bold ml-2">¥{totalPriceWithTax}</span>
+        </div>
+        <div className="mb-6 text-lg">
+          <span className="text-gray-700">合計金額（税抜）:</span>
+          <span className="font-bold ml-2">¥{totalPriceWithoutTax}</span>
+        </div>
+        <div className="flex justify-center">
+          <button
+            onClick={closeModal}
+            className="w-full px-8 py-4 text-white bg-blue-600 rounded-lg text-xl font-bold shadow hover:bg-blue-700 transition"
+          >
+            OK
+          </button>
+        </div>
       </Modal>
 
       {/* トーストメッセージ表示 */}

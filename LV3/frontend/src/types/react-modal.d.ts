@@ -5,6 +5,7 @@ declare module 'react-modal' {
     isOpen: boolean;
     onRequestClose: () => void;
     children?: ReactNode; // children プロパティを追加
+    style?: any; // 追加: styleプロパティ
     // 他のプロパティも必要に応じて追加
   }
 
