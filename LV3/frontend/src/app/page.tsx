@@ -93,13 +93,31 @@ export default function PosPage() {
   };
 
   // 購入ボタンが押されたときに実行される関数
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     const total = purchaseList.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
     setTotalPrice(total);
     setModalIsOpen(true); // モーダルを表示
+
+    // 取引内容を記録するAPI呼び出し
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/purchases`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: purchaseList.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+    } catch (error) {
+      console.error("取引記録の保存に失敗しました:", error);
+    }
   };
 
   const closeModal = () => {

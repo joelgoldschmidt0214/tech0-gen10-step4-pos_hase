@@ -97,13 +97,13 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
     details.append(
       TransactionDetail(
         product_id=product.product_id,
-        product_name=product.prodect_name,
+        product_name=product.product_name,
         unit_price=product.price,
         quantity=item.quantity,
       ),
     )
 
-  # 取引ヘッダ保存（まだ表示用コードは未確定）
+  # 取引ヘッダ保存
   transaction = Transaction(total_price=total_without_tax, transaction_code=None)
   db.add(transaction)
   db.flush()  # transaction.id を取得
@@ -115,7 +115,7 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
 
   db.commit()
 
-  # レスポンス用計算 (端数処理: 内税計算 => 税抜 * (1+税率) を四捨五入/切り上げ戦略は仕様不明、ここではfloor((税抜*税率)+0.5)方式)
+  # レスポンス用計算
   tax_amount = floor(total_without_tax * tax_rate + 0.5)
   total_with_tax = total_without_tax + tax_amount
 
