@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from logging.config import fileConfig
 
 import database  # noqa: F401 - ensure models are imported so metadata is populated

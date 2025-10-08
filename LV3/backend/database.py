@@ -50,9 +50,8 @@ class Product(Base):
 
   __tablename__ = "products"
 
-  id = Column(Integer, primary_key=True, index=True)
-  product_code = Column(String(50), unique=True, index=True, nullable=False)
-  name = Column(String(100), nullable=False)
+  product_id = Column(String(13), primary_key=True, index=True)  # JANコード
+  product_name = Column(String(100), nullable=False)
   price = Column(Integer, nullable=False)  # 税抜価格
   created_at = Column(DateTime, default=func.now())
   updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
@@ -63,11 +62,9 @@ class LocalProduct(Base):
 
   __tablename__ = "local_products"
 
-  id = Column(Integer, primary_key=True, index=True)
-  product_code = Column(String(50), unique=True, index=True, nullable=False)
-  name = Column(String(100), nullable=False)
+  product_id = Column(String(13), primary_key=True, index=True)  # JANコード
+  product_name = Column(String(100), nullable=False)
   price = Column(Integer, nullable=False)  # 税抜価格
-  # どの店舗の商品かを識別するためのカラム (将来的拡張性)
   store_id = Column(String(50), index=True, nullable=False, default="default_store")
   created_at = Column(DateTime, default=func.now())
   updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
