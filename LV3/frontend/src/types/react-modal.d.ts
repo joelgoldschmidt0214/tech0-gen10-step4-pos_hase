@@ -1,11 +1,16 @@
 declare module 'react-modal' {
   import { Component, ReactNode } from 'react';
 
+  export interface Styles {
+    content?: React.CSSProperties;
+    overlay?: React.CSSProperties;
+  }
+
   interface ModalProps {
     isOpen: boolean;
     onRequestClose: () => void;
     children?: ReactNode; // children プロパティを追加
-    style?: any; // 追加: styleプロパティ
+    style?: Styles; // 型を明示
     // 他のプロパティも必要に応じて追加
   }
 
