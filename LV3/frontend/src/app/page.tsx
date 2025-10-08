@@ -1,17 +1,39 @@
 // LV3/frontend/src/app/page.tsx
 "use client"; // ★ Stateを使うため、クライアントコンポーネント宣言を追加
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
 
 // バックエンドのAPIのURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+// トーストメッセージの型定義
+interface ToastMessage {
+  id: number;
+  message: string;
+  type: "success" | "error";
+}
+
 export default function PosPage() {
   // アプリケーションの状態を管理する
   const [purchaseList, setPurchaseList] = useState<PurchaseItem[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [toastId, setToastId] = useState(0);
+
+  // トーストメッセージを表示する関数
+  const showToast = (message: string, type: "success" | "error") => {
+    const id = toastId + 1;
+    setToastId(id);
+    const newToast: ToastMessage = { id, message, type };
+    setToasts((prev) => [...prev, newToast]);
+
+    // 3秒後に自動削除
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3000);
+  };
 
   // スキャンボタンが押されたときに実行される関数
   const handleScan = async (code: string) => {
@@ -23,9 +45,8 @@ export default function PosPage() {
       // 商品が見つからなかった場合 (404エラー)
       if (!response.ok) {
         const errorData = await response.json();
-        // alertの代わりにconsole.errorでログ出力し、1回だけ表示
         console.error(`商品検索エラー: ${errorData.detail}`);
-        alert(`エラー: ${errorData.detail}`);
+        showToast(`エラー: ${errorData.detail}`, "error");
         return;
       }
 
@@ -39,10 +60,12 @@ export default function PosPage() {
       );
 
       let newList;
+      let message: string;
       if (existingItemIndex > -1) {
         // あった場合：数量を+1する
         newList = [...purchaseList];
         newList[existingItemIndex].quantity += 1;
+        message = `${productData.product_name} の数量を追加しました`;
       } else {
         // なかった場合：新しい商品としてリストに追加する
         const newItem: PurchaseItem = {
@@ -50,19 +73,21 @@ export default function PosPage() {
           quantity: 1,
         };
         newList = [...purchaseList, newItem];
+        message = `${productData.product_name} をリストに追加しました`;
       }
 
       setPurchaseList(newList);
+      showToast(message, "success");
       // 合計金額を再計算（今後のステップで実装）
     } catch (error) {
       console.error("APIの呼び出しに失敗しました:", error);
-      alert("サーバーとの通信に失敗しました。");
+      showToast("サーバーとの通信に失敗しました", "error");
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans">
-      <Header onScan={handleScan} />
+      <Header onScan={handleScan} onMessage={showToast} />
 
       <main className="flex-1 p-4 overflow-y-auto">
         {/* 状態(purchaseList)をコンポーネントに渡す */}
@@ -80,6 +105,27 @@ export default function PosPage() {
           </button>
         </div>
       </footer>
+
+      {/* トーストメッセージ表示 */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
+              toast.type === "success"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+            } animate-in slide-in-from-right`}
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">
+                {toast.type === "success" ? "✓" : "⚠️"}
+              </span>
+              <span className="text-sm">{toast.message}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

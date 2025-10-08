@@ -1,17 +1,17 @@
 // LV3/frontend/src/components/Header.tsx
-import { ScanLine, Trash2, CheckCircle, Camera } from "lucide-react";
+import { ScanLine } from "lucide-react";
 import React, { useState } from "react";
 import BarcodeScanner from "./BarcodeScanner";
 
 // このコンポーネントが受け取るプロパティの型を定義
-// 親コンポーネントから関数を受け取り、ボタンが押されたことを伝える
 type HeaderProps = {
   onScan: (code: string) => void;
+  onMessage: (message: string, type: "success" | "error") => void;
 };
 
-export const Header = ({ onScan }: HeaderProps) => {
+export const Header = ({ onScan, onMessage }: HeaderProps) => {
   const [code, setCode] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleScanClick = () => {
     if (code.trim()) {
@@ -20,27 +20,22 @@ export const Header = ({ onScan }: HeaderProps) => {
     }
   };
 
-  const handleCameraClick = () => {
-    setShowScanner(true);
+  const handleStartScanning = () => {
+    setIsScanning(true);
+  };
+
+  const handleStopScanning = () => {
+    setIsScanning(false);
   };
 
   const handleBarcodeScan = (scannedCode: string) => {
     setCode(scannedCode);
-    setShowScanner(false);
-    // 自動で商品検索を実行
+    // 自動で商品検索を実行（連続スキャンのためスキャンは停止しない）
     onScan(scannedCode);
   };
 
   const handleScanError = (error: string) => {
-    console.error("バーコードスキャンエラー:", error);
-    // モーダルを閉じる
-    setShowScanner(false);
-    // エラーメッセージを表示 (1回だけ)
-    alert(error);
-  };
-
-  const handleCloseScanner = () => {
-    setShowScanner(false);
+    onMessage(error, "error");
   };
 
   // Enterキーでもスキャンを実行できるようにする
@@ -52,15 +47,30 @@ export const Header = ({ onScan }: HeaderProps) => {
 
   return (
     <header className="p-4 bg-white shadow-md">
-      {/* スキャン（カメラ）ボタン */}
-      <div className="flex justify-center mb-4">
-        <button
-          onClick={handleCameraClick}
-          className="flex items-center justify-center px-6 py-3 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-medium"
-        >
-          <Camera size={20} className="mr-2" />
-          スキャン（カメラ）
-        </button>
+      {/* スキャンエリア - カメラ映像か開始ボタン */}
+      <div className="mb-4">
+        {!isScanning ? (
+          <button
+            onClick={handleStartScanning}
+            className="w-full h-32 flex items-center justify-center text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-medium text-lg border-2 border-dashed border-blue-300"
+          >
+            📷 スキャン（カメラ）開始
+          </button>
+        ) : (
+          <div className="relative">
+            <BarcodeScanner
+              onScan={handleBarcodeScan}
+              onError={handleScanError}
+              compact={true}
+            />
+            <button
+              onClick={handleStopScanning}
+              className="absolute top-2 right-2 px-3 py-1 text-white bg-red-500 rounded hover:bg-red-600 text-sm"
+            >
+              停止
+            </button>
+          </div>
+        )}
       </div>
 
       {/* コード表示/入力エリア */}
@@ -81,33 +91,6 @@ export const Header = ({ onScan }: HeaderProps) => {
           <ScanLine size={20} className="mr-1" />
           検索
         </button>
-      </div>
-
-      {/* バーコードスキャナーモーダル */}
-      {showScanner && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">バーコードスキャン</h2>
-              <button
-                onClick={handleCloseScanner}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <BarcodeScanner
-              onScan={handleBarcodeScan}
-              onError={handleScanError}
-              onClose={handleCloseScanner}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 今後のステップで実装する情報表示エリアとボタン */}
-      <div className="mt-4 text-center text-gray-400">
-        {/* （ここに選択商品の情報表示と削除・変更ボタンが入ります） */}
       </div>
     </header>
   );
