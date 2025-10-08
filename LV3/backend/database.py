@@ -1,9 +1,10 @@
 import os
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Integer, String, create_engine, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine, func
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -75,6 +76,30 @@ class LocalProduct(Base):
 # ここに後ほど「取引ヘッダ」「取引明細」モデルも追加していきます
 
 
+class Transaction(Base):
+  """取引ヘッダモデル"""
+
+  __tablename__ = "transactions"
+
+  id = Column(Integer, primary_key=True, index=True)
+  transaction_code = Column(String(50), unique=True, nullable=True)  # 外部システム連携用
+  total_price = Column(Integer, nullable=False)  # 合計金額（税抜）
+  created_at = Column(DateTime, default=func.now())
+
+
+class TransactionDetail(Base):
+  """取引明細モデル"""
+
+  __tablename__ = "transaction_details"
+
+  id = Column(Integer, primary_key=True, index=True)
+  transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False)
+  product_code = Column(String(50), nullable=False)  # 購入された商品のコード
+  product_name = Column(String(100), nullable=False)  # 購入時点の商品名（冗長化）
+  unit_price = Column(Integer, nullable=False)  # 購入時点の単価（税抜、冗長化）
+  quantity = Column(Integer, nullable=False)  # 購入数量
+
+
 # --- Pydanticモデル定義 (APIのレスポンス形式) ---
 # APIがJSONとして返すデータの型を定義します
 # SQLAlchemyモデルからデータを読み取れるように `from_attributes = True` を設定します
@@ -96,6 +121,28 @@ class LocalProductSchema(BaseModel):
   name: str
   price: int
   store_id: str
+
+  class Config:
+    from_attributes = True
+
+
+class TransactionSchema(BaseModel):
+  id: int
+  transaction_code: str | None
+  total_price: int
+  created_at: datetime
+
+  class Config:
+    from_attributes = True
+
+
+class TransactionDetailSchema(BaseModel):
+  id: int
+  transaction_id: int
+  product_code: str
+  product_name: str
+  unit_price: int
+  quantity: int
 
   class Config:
     from_attributes = True
