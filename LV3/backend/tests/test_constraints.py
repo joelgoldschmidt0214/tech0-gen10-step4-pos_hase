@@ -31,27 +31,27 @@ class TestDatabaseConstraints:
     finally:
       db.close()
 
-  def test_product_code_unique_constraint(self, test_db_session):
+  def test_product_id_unique_constraint(self, test_db_session):
     """商品コードのユニーク制約テスト（詳細版）"""
     # 最初の商品を作成
-    product1 = Product(product_code="UNIQUE001", name="商品1", price=100)
+    product1 = Product(product_id="UNIQUE001", name="商品1", price=100)
     test_db_session.add(product1)
     test_db_session.commit()
 
     # 同じ商品コードで別の商品を作成しようとする
-    product2 = Product(product_code="UNIQUE001", name="商品2", price=200)
+    product2 = Product(product_id="UNIQUE001", name="商品2", price=200)
     test_db_session.add(product2)
 
     # ユニーク制約違反でIntegrityErrorが発生することを確認
     with pytest.raises(IntegrityError):
       test_db_session.commit()
 
-  def test_local_product_code_unique_constraint(self, test_db_session):
+  def test_local_product_id_unique_constraint(self, test_db_session):
     """ローカル商品コードのユニーク制約テスト"""
     # 最初のローカル商品を作成
     local_product1 = LocalProduct(
-      product_code="LOCAL_UNIQUE001",
-      name="ローカル商品1",
+      product_id="LOCAL_UNIQUE001",
+      product_name="ローカル商品1",
       price=150,
       store_id="store1",
     )
@@ -60,8 +60,8 @@ class TestDatabaseConstraints:
 
     # 同じ商品コードで別のローカル商品を作成しようとする
     local_product2 = LocalProduct(
-      product_code="LOCAL_UNIQUE001",
-      name="ローカル商品2",
+      product_id="LOCAL_UNIQUE001",
+      product_name="ローカル商品2",
       price=250,
       store_id="store2",
     )
@@ -91,7 +91,7 @@ class TestDatabaseConstraints:
     # 存在しない取引IDで明細を作成しようとする
     detail = TransactionDetail(
       transaction_id=999,  # 存在しない取引ID
-      product_code="TEST001",
+      product_id="TEST001",
       product_name="テスト商品",
       unit_price=500,
       quantity=1,
@@ -113,14 +113,14 @@ class TestDatabaseConstraints:
     # 取引明細を作成
     detail1 = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="PROD1",
+      product_id="PROD1",
       product_name="商品1",
       unit_price=500,
       quantity=2,
     )
     detail2 = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="PROD2",
+      product_id="PROD2",
       product_name="商品2",
       unit_price=250,
       quantity=2,
@@ -180,21 +180,21 @@ class TestBusinessLogic:
     details = [
       TransactionDetail(
         transaction_id=transaction.id,
-        product_code="CALC_PROD1",
+        product_id="CALC_PROD1",
         product_name="計算商品1",
         unit_price=300,
         quantity=2,  # 300 * 2 = 600
       ),
       TransactionDetail(
         transaction_id=transaction.id,
-        product_code="CALC_PROD2",
+        product_id="CALC_PROD2",
         product_name="計算商品2",
         unit_price=150,
         quantity=3,  # 150 * 3 = 450
       ),
       TransactionDetail(
         transaction_id=transaction.id,
-        product_code="CALC_PROD3",
+        product_id="CALC_PROD3",
         product_name="計算商品3",
         unit_price=200,
         quantity=1,  # 200 * 1 = 200
@@ -227,20 +227,20 @@ class TestBusinessLogic:
   def test_product_search_priority(self, test_db_session):
     """商品検索の優先順位テスト（通常商品 → ローカル商品）"""
     # 同じ商品コードで通常商品とローカル商品を作成
-    product_code = "PRIORITY_TEST001"
+    product_id = "PRIORITY_TEST001"
 
     # 通常商品を作成
     regular_product = Product(
-      product_code=product_code,
-      name="通常商品",
+      product_id=product_id,
+      product_name="通常商品",
       price=100,
     )
     test_db_session.add(regular_product)
 
     # ローカル商品を作成（異なる価格で区別）
     local_product = LocalProduct(
-      product_code=product_code,
-      name="ローカル商品",
+      product_id=product_id,
+      product_name="ローカル商品",
       price=150,
       store_id="test_store",
     )
@@ -251,7 +251,7 @@ class TestBusinessLogic:
     found_regular = (
       test_db_session.query(Product)
       .filter(
-        Product.product_code == product_code,
+        Product.product_id == product_id,
       )
       .first()
     )
@@ -259,7 +259,7 @@ class TestBusinessLogic:
     found_local = (
       test_db_session.query(LocalProduct)
       .filter(
-        LocalProduct.product_code == product_code,
+        LocalProduct.product_id == product_id,
       )
       .first()
     )

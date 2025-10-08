@@ -52,7 +52,7 @@ LV3/backend/tests/
 | テストケース | 目的 | 検証内容 |
 |:-----------|:-----|:---------|
 | `test_create_product` | 商品作成 | 商品データの正常な作成・保存 |
-| `test_product_code_unique_constraint` | ユニーク制約 | 商品コードの重複エラー発生 |
+| `test_product_id_unique_constraint` | ユニーク制約 | 商品コードの重複エラー発生 |
 | `test_update_product` | 商品更新 | 商品情報の正常な更新 |
 | `test_delete_product` | 商品削除 | 商品データの正常な削除 |
 
@@ -64,8 +64,8 @@ LV3/backend/tests/
 
 ```python
 Product(
-    product_code="TEST001",
-    name="テスト商品",
+    product_id="TEST001",
+    product_name="テスト商品",
     price=100
 )
 ```
@@ -118,8 +118,8 @@ Product(
 
 | 対象テーブル | 対象カラム | テストケース | 期待結果 |
 |:-----------|:----------|:-----------|:--------|
-| products | product_code | 同一商品コードで重複作成 | IntegrityError |
-| local_products | product_code | 同一商品コードで重複作成 | IntegrityError |
+| products | product_id | 同一商品コードで重複作成 | IntegrityError |
+| local_products | product_id | 同一商品コードで重複作成 | IntegrityError |
 | transactions | transaction_code | 同一取引コードで重複作成 | IntegrityError |
 
 ### 4.2. 外部キー制約テスト

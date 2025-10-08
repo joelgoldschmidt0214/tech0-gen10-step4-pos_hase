@@ -98,7 +98,7 @@ class TransactionDetail(Base):
 
   id = Column(Integer, primary_key=True, index=True)
   transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
-  product_code = Column(String(50), nullable=False)  # 購入された商品のコード
+  product_id = Column(String(50), nullable=False)  # 購入された商品のコード
   product_name = Column(String(100), nullable=False)  # 購入時点の商品名（冗長化）
   unit_price = Column(Integer, nullable=False)  # 購入時点の単価（税抜、冗長化）
   quantity = Column(Integer, nullable=False)  # 購入数量
@@ -110,24 +110,21 @@ class TransactionDetail(Base):
 
 
 class ProductSchema(BaseModel):
-  id: int
-  product_code: str
-  name: str
+  product_id: str
+  product_name: str
   price: int
   model_config = ConfigDict(from_attributes=True)
 
 
 class LocalProductSchema(BaseModel):
-  id: int
-  product_code: str
-  name: str
+  product_id: str
+  product_name: str
   price: int
   store_id: str
   model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionSchema(BaseModel):
-  id: int
   transaction_code: str | None
   total_price: int
   created_at: datetime
@@ -135,10 +132,9 @@ class TransactionSchema(BaseModel):
 
 
 class TransactionDetailSchema(BaseModel):
-  id: int
   transaction_id: int
-  product_code: str
-  product_name: str
+  product_id: str
+  product_product_name: str
   unit_price: int
   quantity: int
   model_config = ConfigDict(from_attributes=True)
@@ -146,7 +142,7 @@ class TransactionDetailSchema(BaseModel):
 
 # --- Purchase API用スキーマ ---
 class PurchaseItemRequest(BaseModel):
-  product_code: str
+  product_id: str
   quantity: int
 
 

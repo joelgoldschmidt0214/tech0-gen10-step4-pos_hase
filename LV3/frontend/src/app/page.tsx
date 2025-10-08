@@ -39,7 +39,7 @@ export default function PosPage() {
   const handleScan = async (code: string) => {
     console.log(`商品検索: ${code}`); // デバッグ用ログ
     try {
-      // バックエンドのAPIを呼び出す (JANコードをproduct_codeとして使用)
+      // バックエンドのAPIを呼び出す (JANコードをproduct_idとして使用)
       const response = await fetch(`${API_BASE_URL}/api/v1/products/${code}`);
 
       // 商品が見つからなかった場合 (404エラー)
@@ -56,7 +56,7 @@ export default function PosPage() {
       // --- 購入リストへの追加ロジック ---
       // すでにリストに同じ商品があるか探す
       const existingItemIndex = purchaseList.findIndex(
-        (item) => item.product_code === productData.product_code
+        (item) => item.product_id === productData.product_id
       );
 
       let newList;

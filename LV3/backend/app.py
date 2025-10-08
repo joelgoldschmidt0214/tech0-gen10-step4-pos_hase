@@ -39,23 +39,23 @@ app.add_middleware(
 
 
 # @app.get(...) は、この関数がHTTP GETリクエストを処理することを示します。
-# "/api/v1/products/{product_code}" は、このAPIのURLパスです。
-# {product_code} は、URLの一部として渡される動的な値（パスパラメータ）です。
+# "/api/v1/products/{product_id}" は、このAPIのURLパスです。
+# {product_id} は、URLの一部として渡される動的な値（パスパラメータ）です。
 # response_model=database.ProductSchema は、このAPIが返すJSONの形式を定義します。
-@app.get("/api/v1/products/{product_code}", response_model=database.ProductSchema)
-def get_product(product_code: str, db: Session = Depends(get_db)):  # noqa: B008, FAST002
+@app.get("/api/v1/products/{product_id}", response_model=database.ProductSchema)
+def get_product(product_id: str, db: Session = Depends(get_db)):  # noqa: B008, FAST002
   """
   指定された商品コードに基づいて、商品を検索するAPI。
   まず商品マスタを検索し、見つからなければローカル拡張マスタを検索する。
   """
-  print(f"商品コード検索: {product_code}")  # 動作確認用のログ
+  print(f"商品コード検索: {product_id}")  # 動作確認用のログ
 
   # 1. まずは通常の商品マスタ (productsテーブル) を検索
-  product = db.query(database.Product).filter(database.Product.product_code == product_code).first()
+  product = db.query(database.Product).filter(database.Product.product_id == product_id).first()
 
   # 2. もし商品マスタに見つからなければ、ローカル拡張マスタ (local_productsテーブル) を検索
   if not product:
-    product = db.query(database.LocalProduct).filter(database.LocalProduct.product_code == product_code).first()
+    product = db.query(database.LocalProduct).filter(database.LocalProduct.product_id == product_id).first()
 
   # 3. どちらのテーブルにも商品が見つからなかった場合
   if not product:
@@ -82,22 +82,22 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
       raise HTTPException(status_code=400, detail=f"リクエストが無効です。数量が不正: {item.quantity}")
 
     # 商品検索 (通常→ローカル)
-    product = (db.query(database.Product).filter(database.Product.product_code == item.product_code).first()) or (
-      db.query(database.LocalProduct).filter(database.LocalProduct.product_code == item.product_code).first()
+    product = (db.query(database.Product).filter(database.Product.product_id == item.product_id).first()) or (
+      db.query(database.LocalProduct).filter(database.LocalProduct.product_id == item.product_id).first()
     )
 
     if not product:
       raise HTTPException(
         status_code=400,
-        detail=f"リクエストが無効です。商品コード '{item.product_code}' は存在しません。",
+        detail=f"リクエストが無効です。商品コード '{item.product_id}' は存在しません。",
       )
 
     line_total = product.price * item.quantity
     total_without_tax += line_total
     details.append(
       TransactionDetail(
-        product_code=product.product_code,
-        product_name=product.name,
+        product_id=product.product_id,
+        product_name=product.prodect_name,
         unit_price=product.price,
         quantity=item.quantity,
       ),

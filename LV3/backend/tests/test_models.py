@@ -11,8 +11,8 @@ class TestProductModel:
     """商品の作成テスト"""
     # テストデータを作成
     product = Product(
-      product_code="TEST001",
-      name="テスト商品",
+      product_id="TEST001",
+      product_name="テスト商品",
       price=100,
     )
 
@@ -21,23 +21,23 @@ class TestProductModel:
     test_db_session.commit()
 
     # 保存されたことを確認
-    saved_product = test_db_session.query(Product).filter(Product.product_code == "TEST001").first()
+    saved_product = test_db_session.query(Product).filter(Product.product_id == "TEST001").first()
     assert saved_product is not None
-    assert saved_product.product_code == "TEST001"
-    assert saved_product.name == "テスト商品"
+    assert saved_product.product_id == "TEST001"
+    assert saved_product.product_name == "テスト商品"
     assert saved_product.price == 100
     assert saved_product.created_at is not None
     assert saved_product.updated_at is not None
 
-  def test_product_code_unique_constraint(self, test_db_session):
+  def test_product_id_unique_constraint(self, test_db_session):
     """商品コードのユニーク制約テスト"""
     # 最初の商品を作成
-    product1 = Product(product_code="TEST001", name="テスト商品1", price=100)
+    product1 = Product(product_id="TEST001", product_name="テスト商品1", price=100)
     test_db_session.add(product1)
     test_db_session.commit()
 
     # 同じ商品コードで別の商品を作成
-    product2 = Product(product_code="TEST001", name="テスト商品2", price=200)
+    product2 = Product(product_id="TEST001", product_name="テスト商品2", price=200)
     test_db_session.add(product2)
 
     # ユニーク制約違反でエラーが発生することを確認
@@ -47,24 +47,24 @@ class TestProductModel:
   def test_update_product(self, test_db_session):
     """商品の更新テスト"""
     # 商品を作成
-    product = Product(product_code="TEST001", name="テスト商品", price=100)
+    product = Product(product_id="TEST001", product_name="テスト商品", price=100)
     test_db_session.add(product)
     test_db_session.commit()
 
     # 商品を更新
-    product.name = "更新されたテスト商品"
+    product.product_name = "更新されたテスト商品"
     product.price = 150
     test_db_session.commit()
 
     # 更新されたことを確認
-    updated_product = test_db_session.query(Product).filter(Product.product_code == "TEST001").first()
-    assert updated_product.name == "更新されたテスト商品"
+    updated_product = test_db_session.query(Product).filter(Product.product_id == "TEST001").first()
+    assert updated_product.product_name == "更新されたテスト商品"
     assert updated_product.price == 150
 
   def test_delete_product(self, test_db_session):
     """商品の削除テスト"""
     # 商品を作成
-    product = Product(product_code="TEST001", name="テスト商品", price=100)
+    product = Product(product_id="TEST001", product_name="テスト商品", price=100)
     test_db_session.add(product)
     test_db_session.commit()
 
@@ -73,7 +73,7 @@ class TestProductModel:
     test_db_session.commit()
 
     # 削除されたことを確認
-    deleted_product = test_db_session.query(Product).filter(Product.product_code == "TEST001").first()
+    deleted_product = test_db_session.query(Product).filter(Product.product_id == "TEST001").first()
     assert deleted_product is None
 
 
@@ -83,8 +83,8 @@ class TestLocalProductModel:
   def test_create_local_product(self, test_db_session):
     """ローカル商品の作成テスト"""
     local_product = LocalProduct(
-      product_code="LOCAL001",
-      name="ローカルテスト商品",
+      product_id="LOCAL001",
+      product_name="ローカルテスト商品",
       price=200,
       store_id="store001",
     )
@@ -92,25 +92,25 @@ class TestLocalProductModel:
     test_db_session.add(local_product)
     test_db_session.commit()
 
-    saved_product = test_db_session.query(LocalProduct).filter(LocalProduct.product_code == "LOCAL001").first()
+    saved_product = test_db_session.query(LocalProduct).filter(LocalProduct.product_id == "LOCAL001").first()
     assert saved_product is not None
-    assert saved_product.product_code == "LOCAL001"
-    assert saved_product.name == "ローカルテスト商品"
+    assert saved_product.product_id == "LOCAL001"
+    assert saved_product.product_name == "ローカルテスト商品"
     assert saved_product.price == 200
     assert saved_product.store_id == "store001"
 
   def test_local_product_default_store_id(self, test_db_session):
     """ローカル商品のデフォルト店舗IDテスト"""
     local_product = LocalProduct(
-      product_code="LOCAL001",
-      name="ローカルテスト商品",
+      product_id="LOCAL001",
+      product_name="ローカルテスト商品",
       price=200,
     )
 
     test_db_session.add(local_product)
     test_db_session.commit()
 
-    saved_product = test_db_session.query(LocalProduct).filter(LocalProduct.product_code == "LOCAL001").first()
+    saved_product = test_db_session.query(LocalProduct).filter(LocalProduct.product_id == "LOCAL001").first()
     assert saved_product.store_id == "default_store"
 
 
@@ -159,7 +159,7 @@ class TestTransactionDetailModel:
     # 取引明細を作成
     detail = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="TEST001",
+      product_id="TEST001",
       product_name="テスト商品",
       unit_price=500,
       quantity=3,
@@ -173,7 +173,7 @@ class TestTransactionDetailModel:
     )
     assert saved_detail is not None
     assert saved_detail.transaction_id == transaction.id
-    assert saved_detail.product_code == "TEST001"
+    assert saved_detail.product_id == "TEST001"
     assert saved_detail.product_name == "テスト商品"
     assert saved_detail.unit_price == 500
     assert saved_detail.quantity == 3
@@ -183,7 +183,7 @@ class TestTransactionDetailModel:
     # 存在しない取引IDで明細を作成しようとする
     detail = TransactionDetail(
       transaction_id=999,  # 存在しない取引ID
-      product_code="TEST001",
+      product_id="TEST001",
       product_name="テスト商品",
       unit_price=500,
       quantity=1,
@@ -212,7 +212,7 @@ class TestTransactionWithDetails:
     # 2. 取引明細を複数作成
     detail1 = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="PROD001",
+      product_id="PROD001",
       product_name="商品1",
       unit_price=500,
       quantity=1,
@@ -220,7 +220,7 @@ class TestTransactionWithDetails:
 
     detail2 = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="PROD002",
+      product_id="PROD002",
       product_name="商品2",
       unit_price=300,
       quantity=2,
@@ -251,7 +251,7 @@ class TestTransactionWithDetails:
 
     detail = TransactionDetail(
       transaction_id=transaction.id,
-      product_code="PROD001",
+      product_id="PROD001",
       product_name="商品1",
       unit_price=500,
       quantity=1,

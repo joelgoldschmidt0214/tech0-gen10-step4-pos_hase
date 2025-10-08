@@ -4,8 +4,8 @@ import { PurchaseListItem } from "./PurchaseListItem";
 // ★ このコンポーネントと外部で共有するデータの型をエクスポート
 export type PurchaseItem = {
   id: number;
-  product_code: string;
-  name: string;
+  product_id: string;
+  product_name: string;
   price: number;
   quantity: number;
   discountText?: string;
@@ -29,7 +29,7 @@ export const PurchaseList = ({ items }: PurchaseListProps) => {
           {items.map((item) => (
             // PurchaseListItemにitemオブジェクトをそのまま渡す
             <PurchaseListItem
-              key={item.product_code}
+              key={item.product_id}
               item={item} // ★ itemを丸ごと渡すように変更
             />
           ))}

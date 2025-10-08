@@ -10,7 +10,7 @@
 
 | 分類 | 対象API | メソッド | パス |
 |:-----|:--------|:--------|:-----|
-| 商品検索 | 単一商品取得 | GET | `/api/v1/products/{product_code}` |
+| 商品検索 | 単一商品取得 | GET | `/api/v1/products/{product_id}` |
 | 購入処理 | 取引確定 | POST | `/api/v1/purchases` |
 
 ### 1.2. 非対象
@@ -47,7 +47,7 @@ LV3/backend/tests/
 
 ---
 
-## 3. 商品検索APIテスト設計 (`GET /api/v1/products/{product_code}`)
+## 3. 商品検索APIテスト設計 (`GET /api/v1/products/{product_id}`)
 
 ### 3.1. テスト観点
 
@@ -61,7 +61,7 @@ LV3/backend/tests/
 
 | ID | シナリオ | 事前データ | 期待ステータス | 期待レスポンス要点 |
 |:--|:----------|:-----------|:---------------|:--------------------|
-| P-01 | 通常商品ヒット | products に1件 | 200 | product_code/name/price が登録値 |
+| P-01 | 通常商品ヒット | products に1件 | 200 | product_id/name/price が登録値 |
 | P-02 | 通常/ローカル重複 | 両テーブル同じコード | 200 | nameは通常商品、priceは通常商品の値 |
 | P-03 | 未存在コード | なし | 404 | `{ "detail": "商品が見つかりません" }` |
 

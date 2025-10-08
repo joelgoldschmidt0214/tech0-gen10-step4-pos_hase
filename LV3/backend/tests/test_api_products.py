@@ -42,21 +42,21 @@ client = TestClient(app.app)
 def test_get_product_success(test_engine):
   session_local = make_session_factory(test_engine)
   with session_local() as db:
-    db.add(Product(product_code="SEARCH001", name="検索商品", price=500))
+    db.add(Product(product_id="SEARCH001", product_name="検索商品", price=500))
     db.commit()
 
   app.app.dependency_overrides[get_db] = override_db_factory(test_engine)
   response = client.get("/api/v1/products/SEARCH001")
   assert response.status_code == 200
   data = response.json()
-  assert data == {"id": 1, "product_code": "SEARCH001", "name": "検索商品", "price": 500}
+  assert data == {"id": 1, "product_id": "SEARCH001", "name": "検索商品", "price": 500}
 
 
 def test_get_product_prefers_regular_over_local(test_engine):
   session_local = make_session_factory(test_engine)
   with session_local() as db:
-    db.add(Product(product_code="DUP001", name="通常商品", price=100))
-    db.add(LocalProduct(product_code="DUP001", name="ローカル商品", price=150, store_id="S1"))
+    db.add(Product(product_id="DUP001", product_name="通常商品", price=100))
+    db.add(LocalProduct(product_id="DUP001", product_name="ローカル商品", price=150, store_id="S1"))
     db.commit()
 
   app.app.dependency_overrides[get_db] = override_db_factory(test_engine)
