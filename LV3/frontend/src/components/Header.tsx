@@ -1,21 +1,41 @@
 // LV3/frontend/src/components/Header.tsx
-import { ScanLine, Trash2, CheckCircle } from "lucide-react";
-import React from "react";
+import { ScanLine } from "lucide-react";
+import React, { useState } from "react";
+import BarcodeScanner from "./BarcodeScanner";
 
 // このコンポーネントが受け取るプロパティの型を定義
-// 親コンポーネントから関数を受け取り、ボタンが押されたことを伝える
 type HeaderProps = {
   onScan: (code: string) => void;
+  onMessage: (message: string, type: "success" | "error") => void;
 };
 
-export const Header = ({ onScan }: HeaderProps) => {
-  const [code, setCode] = React.useState("");
+export const Header = ({ onScan, onMessage }: HeaderProps) => {
+  const [code, setCode] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleScanClick = () => {
-    if (code) {
-      onScan(code);
+    if (code.trim()) {
+      onScan(code.trim());
       setCode(""); // 入力フィールドをクリア
     }
+  };
+
+  const handleStartScanning = () => {
+    setIsScanning(true);
+  };
+
+  const handleStopScanning = () => {
+    setIsScanning(false);
+  };
+
+  const handleBarcodeScan = (scannedCode: string) => {
+    setCode(scannedCode);
+    // 自動で商品検索を実行（連続スキャンのためスキャンは停止しない）
+    onScan(scannedCode);
+  };
+
+  const handleScanError = (error: string) => {
+    onMessage(error, "error");
   };
 
   // Enterキーでもスキャンを実行できるようにする
@@ -27,28 +47,50 @@ export const Header = ({ onScan }: HeaderProps) => {
 
   return (
     <header className="p-4 bg-white shadow-md">
-      {/* 擬似的なスキャンボタン（実際はカメラを起動するが、今は手入力で代用） */}
+      {/* スキャンエリア - カメラ映像か開始ボタン */}
+      <div className="mb-4">
+        {!isScanning ? (
+          <button
+            onClick={handleStartScanning}
+            className="w-full h-32 flex items-center justify-center text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-medium text-lg border-2 border-dashed border-blue-300"
+          >
+            📷 スキャン（カメラ）開始
+          </button>
+        ) : (
+          <div className="relative">
+            <BarcodeScanner
+              onScan={handleBarcodeScan}
+              onError={handleScanError}
+              compact={true}
+            />
+            <button
+              onClick={handleStopScanning}
+              className="absolute top-2 right-2 px-3 py-1 text-white bg-red-500 rounded hover:bg-red-600 text-sm"
+            >
+              停止
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* コード表示/入力エリア */}
       <div className="flex gap-2">
         <input
           type="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="ここに商品コードを入力してスキャン"
-          className="flex-grow p-2 border rounded-lg"
+          placeholder="12345678901"
+          className="flex-grow p-3 border rounded-lg text-center text-lg font-mono"
         />
         <button
           onClick={handleScanClick}
-          className="flex items-center justify-center px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+          disabled={!code.trim()}
+          className="flex items-center justify-center px-4 py-2 text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          <ScanLine size={20} className="mr-2" />
-          スキャン
+          <ScanLine size={20} className="mr-1" />
+          検索
         </button>
-      </div>
-
-      {/* 今後のステップで実装する情報表示エリアとボタン */}
-      <div className="mt-4 text-center text-gray-400">
-        {/* （ここに選択商品の情報表示と削除・変更ボタンが入ります） */}
       </div>
     </header>
   );
