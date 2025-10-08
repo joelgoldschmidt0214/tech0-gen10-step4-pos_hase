@@ -58,6 +58,7 @@ jobs:
       - name: Install dependencies
         run: |
           cp /.npmrc.prod /.npmrc
+          ls -la / # デバッグ用: .npmrcファイルが正しくコピーされたか確認
           npm install --frozen-lockfile
 
       # --- Step 5: Next.jsアプリケーションのビルド ---
