@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 interface BarcodeScannerProps {
@@ -19,6 +19,7 @@ export default function BarcodeScanner({
   const [error, setError] = useState<string | null>(null);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
 
   // JANコード形式チェック（8桁または13桁の数字）
   const isValidJAN = (code: string): boolean => {
@@ -53,7 +54,22 @@ export default function BarcodeScanner({
     return false;
   };
 
-  const startScanning = async () => {
+  const stopScanning = useCallback(() => {
+    // カメラストリームを停止
+    if (streamRef) {
+      streamRef.getTracks().forEach((track) => track.stop());
+      setStreamRef(null);
+    }
+
+    if (readerRef.current) {
+      readerRef.current = null;
+    }
+    setIsScanning(false);
+    setError(null);
+    setLastScanned(null);
+  }, [streamRef]);
+
+  const startScanning = useCallback(async () => {
     try {
       if (!videoRef.current) return;
 
@@ -123,24 +139,7 @@ export default function BarcodeScanner({
       setIsScanning(false);
       console.error("Camera access error:", err);
     }
-  };
-
-  const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
-
-  const stopScanning = () => {
-    // カメラストリームを停止
-    if (streamRef) {
-      streamRef.getTracks().forEach((track) => track.stop());
-      setStreamRef(null);
-    }
-
-    if (readerRef.current) {
-      readerRef.current = null;
-    }
-    setIsScanning(false);
-    setError(null);
-    setLastScanned(null);
-  };
+  }, [onError, onScan, lastScanned, stopScanning]);
 
   useEffect(() => {
     // モーダルが開かれた時に自動的にスキャンを開始

@@ -24,9 +24,6 @@ export default function PosPage() {
   const [toastId, setToastId] = useState(0);
   const [modalIsOpen, setModalIsOpen] = useState(false); // モーダルの状態管理
 
-  // コード入力欄の状態
-  const [inputCode, setInputCode] = useState("");
-
   // 直近でスキャン/入力した商品の情報
   const [lastProduct, setLastProduct] = useState<PurchaseItem | null>(null);
 
@@ -120,7 +117,6 @@ export default function PosPage() {
     setPurchaseList([]);
     setLastProduct(null);
     setTotalPrice(0);
-    setInputCode("");
   };
 
   // 数量変更モーダル表示
@@ -173,7 +169,6 @@ export default function PosPage() {
     setPurchaseList([]); // 購入リストをリセット
     setLastProduct(null);
     setTotalPrice(0); // 合計金額をリセット
-    setInputCode("");
   };
 
   // 購入リストの商品選択（↑ボタン用）
