@@ -6,11 +6,13 @@ import { BrowserMultiFormatReader } from "@zxing/browser";
 interface BarcodeScannerProps {
   onScan?: (janCode: string) => void;
   onError?: (error: string) => void;
+  onClose?: () => void;
 }
 
 export default function BarcodeScanner({
   onScan,
   onError,
+  onClose,
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -99,6 +101,7 @@ export default function BarcodeScanner({
             setLastScanned(scannedCode);
             setError(null);
             onScan?.(scannedCode);
+            onClose?.(); // モーダルを閉じる
 
             // 1秒後にlastScannedをリセット
             setTimeout(() => setLastScanned(null), 1000);
@@ -140,6 +143,9 @@ export default function BarcodeScanner({
   };
 
   useEffect(() => {
+    // モーダルが開かれた時に自動的にスキャンを開始
+    startScanning();
+    
     return () => {
       stopScanning();
     };
