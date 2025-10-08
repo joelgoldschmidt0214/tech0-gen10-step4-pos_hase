@@ -8,5 +8,7 @@ declare module 'react-modal' {
     // 他のプロパティも必要に応じて追加
   }
 
-  export default class Modal extends Component<ModalProps> {}
+  export default class Modal extends Component<ModalProps> {
+    static setAppElement(el: string | HTMLElement): void; // setAppElement メソッドを追加
+  }
 }

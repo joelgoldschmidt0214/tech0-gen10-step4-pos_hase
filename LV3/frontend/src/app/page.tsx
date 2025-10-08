@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
+import Modal from "react-modal"; // モーダルライブラリをインポート
 
 // バックエンドのAPIのURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -21,6 +22,12 @@ export default function PosPage() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [toastId, setToastId] = useState(0);
+  const [modalIsOpen, setModalIsOpen] = useState(false); // モーダルの状態管理
+
+  // モーダルのアプリ要素を設定
+  useEffect(() => {
+    Modal.setAppElement("body"); // アプリ要素を設定
+  }, []);
 
   // トーストメッセージを表示する関数
   const showToast = (message: string, type: "success" | "error") => {
@@ -85,6 +92,21 @@ export default function PosPage() {
     }
   };
 
+  // 購入ボタンが押されたときに実行される関数
+  const handlePurchase = () => {
+    const total = purchaseList.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    setTotalPrice(total);
+    setModalIsOpen(true); // モーダルを表示
+  };
+
+  const closeModal = () => {
+    setModalIsOpen(false); // モーダルを閉じる
+    showToast("取引が成立しました", "success"); // トーストメッセージを表示
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans">
       <Header onScan={handleScan} onMessage={showToast} />
@@ -100,11 +122,21 @@ export default function PosPage() {
           <p className="text-3xl font-bold text-gray-900">¥{totalPrice}</p>
         </div>
         <div className="flex space-x-2">
-          <button className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg">
+          <button
+            className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg"
+            onClick={handlePurchase} // クリックイベントハンドラーを追加
+          >
             購入
           </button>
         </div>
       </footer>
+
+      {/* モーダル表示 */}
+      <Modal isOpen={modalIsOpen} onRequestClose={closeModal}>
+        <h2>購入確認</h2>
+        <p>合計金額: ¥{totalPrice}</p>
+        <button onClick={closeModal}>OK</button>
+      </Modal>
 
       {/* トーストメッセージ表示 */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
