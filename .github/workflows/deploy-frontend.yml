@@ -56,7 +56,9 @@ jobs:
 
       # --- Step 4: 依存関係のインストール ---
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          cp .npmrc.prod .npmrc
+          npm install --frozen-lockfile
 
       # --- Step 5: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
