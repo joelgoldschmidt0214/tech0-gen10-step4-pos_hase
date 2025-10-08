@@ -11,9 +11,11 @@ export type PurchaseItem = {
   discountText?: string;
 };
 
-type PurchaseListProps = {
+export interface PurchaseListProps {
   items: PurchaseItem[];
-};
+  onRemoveItem?: (productId: string) => void;
+  onChangeQuantity?: (productId: string, newQuantity: number) => void;
+}
 
 export const PurchaseList = ({ items }: PurchaseListProps) => {
   return (
