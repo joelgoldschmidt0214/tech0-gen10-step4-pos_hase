@@ -94,7 +94,7 @@ export default function PosPage() {
         newList[existingItemIndex].quantity += 1;
         message = `${productData.product_name} の数量を追加しました`;
         newQuantity = newList[existingItemIndex].quantity;
-        setLastProduct({ ...newList[existingItemIndex] });
+        setLastProduct({ ...newList[existingItemIndex] }); // product_id含む全情報を反映
       } else {
         // なかった場合：新しい商品としてリストに追加する
         const newItem: PurchaseItem = {
@@ -103,7 +103,7 @@ export default function PosPage() {
         };
         newList = [...purchaseList, newItem];
         message = `${productData.product_name} をリストに追加しました`;
-        setLastProduct(newItem);
+        setLastProduct(newItem); // product_id含む全情報を反映
       }
 
       setPurchaseList(newList); // 合計金額はuseEffectで自動更新
@@ -183,6 +183,12 @@ export default function PosPage() {
     setInputCode("");
   };
 
+  // 購入リストの商品選択（↑ボタン用）
+  const handleSelectItem = (item: PurchaseItem) => {
+    setLastProduct({ ...item }); // product_id含む全情報を反映
+    setQuantityInput(item.quantity);
+  };
+
   // 税率
   const taxRate = 0.1;
   const totalPriceWithoutTax = Math.round(totalPrice / (1 + taxRate));
@@ -202,15 +208,18 @@ export default function PosPage() {
       <main className="flex-1 p-4 overflow-y-auto flex flex-col items-center">
         {/* 購入リスト */}
         <div className="w-full max-w-xl mb-4">
-          <PurchaseList items={purchaseList} />
+          <PurchaseList
+            items={purchaseList}
+            onItemSelect={handleSelectItem} // 名前を変更
+          />
         </div>
       </main>
 
       {/* 合計金額表示（フッターの左:ラベル、右:金額） */}
-      <footer className="w-full bg-white border-t border-gray-200 flex flex-col items-center">
-        <div className="w-full max-w-xl flex items-center justify-between py-4 px-2">
-          <span className="text-gray-600 text-lg">合計</span>
-          <p className="text-3xl font-bold text-gray-900">
+      <footer className="bg-white border-t border-gray-200 flex flex-col items-center">
+        <div className="w-90% max-w-xl flex items-center py-3 px-2">
+          <span className="text-gray-600 pr-5 text-lg">合計</span>
+          <p className="py-1 text-3xl font-bold text-gray-900 border-1 w-100 text-center">
             {totalPrice.toLocaleString()}円
           </p>
         </div>

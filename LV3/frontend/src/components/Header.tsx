@@ -1,6 +1,6 @@
 // LV3/frontend/src/components/Header.tsx
 import { ScanLine } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import BarcodeScanner from "./BarcodeScanner";
 import { PurchaseItem } from "./PurchaseList";
 
@@ -24,6 +24,13 @@ export const Header = ({
 }: HeaderProps) => {
   const [code, setCode] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+
+  // lastProductが変わったらコード欄にJANコードを表示
+  useEffect(() => {
+    if (lastProduct?.product_id) {
+      setCode(lastProduct.product_id);
+    }
+  }, [lastProduct]);
 
   const handleScanClick = () => {
     if (code.trim()) {
@@ -101,14 +108,13 @@ export const Header = ({
           placeholder="バーコードをスキャンまたは入力"
           className="flex-grow py-2 border rounded-lg text-center text-md font-mono"
         />
-        {/* <button
+        <button
           onClick={handleScanClick}
           disabled={!code.trim()}
           className="flex items-center justify-center px-4 py-2 text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          <ScanLine size={20} className="mr-1" />
-          検索
-        </button> */}
+          手動登録
+        </button>
       </div>
 
       {/* 名称表示 */}
