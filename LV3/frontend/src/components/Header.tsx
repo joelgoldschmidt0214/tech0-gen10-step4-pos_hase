@@ -24,6 +24,9 @@ export const Header = ({
 }: HeaderProps) => {
   const [code, setCode] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [lastScanTime, setLastScanTime] = useState<number>(0);
+  const SCAN_INTERVAL_MS = 1000;
 
   // lastProductが変わったらコード欄にJANコードを表示
   useEffect(() => {
@@ -48,7 +51,17 @@ export const Header = ({
   };
 
   const handleBarcodeScan = (scannedCode: string) => {
+    const now = Date.now();
+    if (
+      scannedCode === lastScannedCode &&
+      now - lastScanTime < SCAN_INTERVAL_MS
+    ) {
+      // 同じバーコードかつインターバル未満なら何もしない
+      return;
+    }
     setCode(scannedCode);
+    setLastScannedCode(scannedCode);
+    setLastScanTime(now);
     // 自動で商品検索を実行（連続スキャンのためスキャンは停止しない）
     onScan(scannedCode);
   };
