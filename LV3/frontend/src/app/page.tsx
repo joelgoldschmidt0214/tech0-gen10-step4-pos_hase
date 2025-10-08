@@ -42,6 +42,16 @@ export default function PosPage() {
     }, 3000);
   };
 
+  // 合計金額を計算する関数
+  const calculateTotalPrice = (list: PurchaseItem[]) => {
+    return list.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  };
+
+  // purchaseListが変更されたら合計金額を再計算
+  useEffect(() => {
+    setTotalPrice(calculateTotalPrice(purchaseList));
+  }, [purchaseList]);
+
   // スキャンボタンが押されたときに実行される関数
   const handleScan = async (code: string) => {
     console.log(`商品検索: ${code}`); // デバッグ用ログ
@@ -83,9 +93,8 @@ export default function PosPage() {
         message = `${productData.product_name} をリストに追加しました`;
       }
 
-      setPurchaseList(newList);
+      setPurchaseList(newList); // 合計金額はuseEffectで自動更新
       showToast(message, "success");
-      // 合計金額を再計算（今後のステップで実装）
     } catch (error) {
       console.error("APIの呼び出しに失敗しました:", error);
       showToast("サーバーとの通信に失敗しました", "error");
@@ -94,11 +103,6 @@ export default function PosPage() {
 
   // 購入ボタンが押されたときに実行される関数
   const handlePurchase = async () => {
-    const total = purchaseList.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-    setTotalPrice(total);
     setModalIsOpen(true); // モーダルを表示
 
     // 取引内容を記録するAPI呼び出し
@@ -123,6 +127,21 @@ export default function PosPage() {
   const closeModal = () => {
     setModalIsOpen(false); // モーダルを閉じる
     showToast("取引が成立しました", "success"); // トーストメッセージを表示
+  };
+
+  // リスト削除ボタンや数量変更ボタンの処理もsetPurchaseListのみでOK
+  const handleRemoveItem = (productId: string) => {
+    const newList = purchaseList.filter(
+      (item) => item.product_id !== productId
+    );
+    setPurchaseList(newList);
+  };
+
+  const handleChangeQuantity = (productId: string, newQuantity: number) => {
+    const newList = purchaseList.map((item) =>
+      item.product_id === productId ? { ...item, quantity: newQuantity } : item
+    );
+    setPurchaseList(newList);
   };
 
   return (
