@@ -127,6 +127,8 @@ export default function PosPage() {
   const closeModal = () => {
     setModalIsOpen(false); // モーダルを閉じる
     showToast("取引が成立しました", "success"); // トーストメッセージを表示
+    setPurchaseList([]); // 購入リストをリセット
+    setTotalPrice(0); // 合計金額をリセット
   };
 
   // リスト削除ボタンや数量変更ボタンの処理もsetPurchaseListのみでOK
