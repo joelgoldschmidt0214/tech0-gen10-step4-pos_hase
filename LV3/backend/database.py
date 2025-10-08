@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine, func
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -85,6 +85,13 @@ class Transaction(Base):
   transaction_code = Column(String(50), unique=True, nullable=True)  # 外部システム連携用
   total_price = Column(Integer, nullable=False)  # 合計金額（税抜）
   created_at = Column(DateTime, default=func.now())
+  # 関連する明細（カスケード削除 & orphan削除）
+  details = relationship(
+    "TransactionDetail",
+    backref="transaction",
+    cascade="all, delete-orphan",
+    passive_deletes=True,
+  )
 
 
 class TransactionDetail(Base):
@@ -93,7 +100,7 @@ class TransactionDetail(Base):
   __tablename__ = "transaction_details"
 
   id = Column(Integer, primary_key=True, index=True)
-  transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False)
+  transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
   product_code = Column(String(50), nullable=False)  # 購入された商品のコード
   product_name = Column(String(100), nullable=False)  # 購入時点の商品名（冗長化）
   unit_price = Column(Integer, nullable=False)  # 購入時点の単価（税抜、冗長化）
@@ -146,6 +153,25 @@ class TransactionDetailSchema(BaseModel):
 
   class Config:
     from_attributes = True
+
+
+# --- Purchase API用スキーマ ---
+class PurchaseItemRequest(BaseModel):
+  product_code: str
+  quantity: int
+
+
+class PurchaseRequest(BaseModel):
+  items: list[PurchaseItemRequest]
+
+
+class PurchaseResponse(BaseModel):
+  transaction_id: str
+  total_price_without_tax: int
+  total_price_with_tax: int
+  tax_rate: float
+  items_count: int
+  transaction_code: str | None = None
 
 
 # --- DBセッションを管理するための関数 ---

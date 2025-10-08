@@ -244,7 +244,7 @@ class TestTransactionWithDetails:
 
   def test_delete_transaction_with_details(self, test_db_session):
     """取引削除時の明細の動作テスト"""
-    # 取引と明細を作成
+    # 取引と明細を作成（外部キー + ondelete=CASCADE が有効な状態）
     transaction = Transaction(transaction_code="TXN001", total_price=500)
     test_db_session.add(transaction)
     test_db_session.commit()
@@ -259,13 +259,15 @@ class TestTransactionWithDetails:
     test_db_session.add(detail)
     test_db_session.commit()
 
-    # 取引を削除
+    # 取引を削除（カスケードで明細も削除される想定）
     test_db_session.delete(transaction)
-
-    # SQLiteでは外部キー制約がデフォルトで無効なので、
-    # 明細が残る可能性がある（実際のアプリではカスケード削除を設定する）
     test_db_session.commit()
 
     # 取引が削除されたことを確認
     deleted_transaction = test_db_session.query(Transaction).filter(Transaction.transaction_code == "TXN001").first()
     assert deleted_transaction is None
+    # 明細も削除されていることを確認
+    remaining_details = (
+      test_db_session.query(TransactionDetail).filter(TransactionDetail.transaction_id == transaction.id).all()
+    )
+    assert remaining_details == []
