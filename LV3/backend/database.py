@@ -148,6 +148,24 @@ class TransactionDetailSchema(BaseModel):
     from_attributes = True
 
 
+# --- Purchase API用スキーマ ---
+class PurchaseItemRequest(BaseModel):
+  product_code: str
+  quantity: int
+
+
+class PurchaseRequest(BaseModel):
+  items: list[PurchaseItemRequest]
+
+
+class PurchaseResponse(BaseModel):
+  transaction_id: str
+  total_price_without_tax: int
+  total_price_with_tax: int
+  tax_rate: float
+  items_count: int
+
+
 # --- DBセッションを管理するための関数 ---
 def get_db():
   db = SessionLocal()

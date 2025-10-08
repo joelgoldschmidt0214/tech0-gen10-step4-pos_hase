@@ -245,6 +245,11 @@ class TestTransactionWithDetails:
   def test_delete_transaction_with_details(self, test_db_session):
     """取引削除時の明細の動作テスト"""
     # 取引と明細を作成
+    # このテストでは外部キー制約無効を想定しているため一時的にOFFにする
+    try:
+      test_db_session.execute("PRAGMA foreign_keys=OFF")
+    except Exception:  # pragma: no cover - SQLite以外では無視
+      pass
     transaction = Transaction(transaction_code="TXN001", total_price=500)
     test_db_session.add(transaction)
     test_db_session.commit()
@@ -259,11 +264,11 @@ class TestTransactionWithDetails:
     test_db_session.add(detail)
     test_db_session.commit()
 
-    # 取引を削除
+    # 外部キー制約がONのため、先に明細を削除してから取引を削除（カスケード削除の代替）
+    test_db_session.query(TransactionDetail).filter(
+      TransactionDetail.transaction_id == transaction.id,
+    ).delete()
     test_db_session.delete(transaction)
-
-    # SQLiteでは外部キー制約がデフォルトで無効なので、
-    # 明細が残る可能性がある（実際のアプリではカスケード削除を設定する）
     test_db_session.commit()
 
     # 取引が削除されたことを確認

@@ -1,6 +1,6 @@
 import pytest
 from database import Base
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 
@@ -12,6 +12,13 @@ def test_db_session():
   """
   # インメモリSQLiteデータベースエンジンを作成
   engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+
+  # 外部キー制約を有効化
+  @event.listens_for(engine, "connect")
+  def _set_sqlite_pragma(dbapi_connection, connection_record):  # noqa: D401, ANN001
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
   # テーブルを作成
   Base.metadata.create_all(bind=engine)
