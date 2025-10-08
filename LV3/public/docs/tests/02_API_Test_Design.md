@@ -162,3 +162,12 @@ PYTHONPATH=. uv run pytest tests/ -v
 - [02_API_Specification.md](../02_API_Specification.md)
 - [01_Database_Test_Design.md](./01_Database_Test_Design.md)
 - FastAPI / SQLAlchemy / pytest 公式ドキュメント
+
+---
+
+### 付録 A: 技術スタック更新メモ (2025-10-08)
+
+| 項目 | 更新内容 | テスト影響 |
+|:-----|:---------|:-----------|
+| Pydantic v2 移行 | `class Config` → `model_config = ConfigDict(from_attributes=True)` に変更 | 振る舞い差異なし (Deprecation 警告解消) |
+| Alembic 導入 | `alembic.ini` と初期リビジョン `0001_initial` 追加 | 今後のスキーマ変更はマイグレーション経由で反映 |

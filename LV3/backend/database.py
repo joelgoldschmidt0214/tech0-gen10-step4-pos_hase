@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine, func
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
@@ -117,9 +117,7 @@ class ProductSchema(BaseModel):
   product_code: str
   name: str
   price: int
-
-  class Config:
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 
 class LocalProductSchema(BaseModel):
@@ -128,9 +126,7 @@ class LocalProductSchema(BaseModel):
   name: str
   price: int
   store_id: str
-
-  class Config:
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionSchema(BaseModel):
@@ -138,9 +134,7 @@ class TransactionSchema(BaseModel):
   transaction_code: str | None
   total_price: int
   created_at: datetime
-
-  class Config:
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionDetailSchema(BaseModel):
@@ -150,9 +144,7 @@ class TransactionDetailSchema(BaseModel):
   product_name: str
   unit_price: int
   quantity: int
-
-  class Config:
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 
 # --- Purchase API用スキーマ ---

@@ -238,3 +238,13 @@ PYTHONPATH=. uv run pytest tests/ --cov=database --cov-report=html
 - [02_API_Specification.md](../02_API_Specification.md) - API仕様書
 - [pytest公式ドキュメント](https://docs.pytest.org/)
 - [SQLAlchemy公式ドキュメント](https://docs.sqlalchemy.org/)
+
+---
+
+### 付録 A: 技術スタック更新メモ (2025-10-08)
+
+| 項目 | 更新内容 | 備考 |
+|:-----|:---------|:-----|
+| Pydantic v2 移行 | 旧 `class Config` を廃止し `ConfigDict(from_attributes=True)` に統一 | 互換性維持・警告解消 |
+| Alembic 導入 | `alembic.ini` / `migrations/` 初期化 & 初期リビジョン `0001_initial` | 今後は手動DDLではなくリビジョン管理 |
+| カスケード削除 | `transactions` ↔ `transaction_details` に `ondelete=CASCADE` + ORM cascade | リレーションテスト追加済 |
