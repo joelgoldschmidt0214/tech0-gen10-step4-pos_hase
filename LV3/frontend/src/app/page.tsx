@@ -2,6 +2,7 @@
 "use client"; // ★ Stateを使うため、クライアントコンポーネント宣言を追加
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
 
@@ -71,9 +72,17 @@ export default function PosPage() {
           <span className="text-gray-600">合計:</span>
           <p className="text-3xl font-bold text-gray-900">¥{totalPrice}</p>
         </div>
-        <button className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg">
-          購入
-        </button>
+        <div className="flex space-x-2">
+          <Link
+            href="/barcode-test"
+            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium text-sm"
+          >
+            バーコードテスト
+          </Link>
+          <button className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg">
+            購入
+          </button>
+        </div>
       </footer>
     </div>
   );
