@@ -16,7 +16,7 @@ export const PurchaseListItem = ({ item }: PurchaseListItemProps) => {
   return (
     <div className="flex items-center p-3 my-2 bg-white rounded-lg shadow-sm">
       <div className="flex-grow">
-        <p className="font-bold text-gray-800">{item.name}</p>
+        <p className="font-bold text-gray-800">{item.product_name}</p>
         <div className="flex items-center text-sm text-gray-500">
           <span>{`x${item.quantity} @ ¥${item.price}`}</span>
           {item.discountText && (

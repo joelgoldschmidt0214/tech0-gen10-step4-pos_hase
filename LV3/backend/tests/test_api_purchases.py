@@ -37,9 +37,9 @@ client = TestClient(app.app)
 def seed_products(engine):
   SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
   with SessionLocal() as db:
-    db.add(Product(product_code="P001", name="商品A", price=300))
-    db.add(Product(product_code="P002", name="商品B", price=200))
-    db.add(LocalProduct(product_code="LP003", name="ローカル商品C", price=150, store_id="S1"))
+    db.add(Product(product_id="P001", product_name="商品A", price=300))
+    db.add(Product(product_id="P002", product_name="商品B", price=200))
+    db.add(LocalProduct(product_id="LP003", product_name="ローカル商品C", price=150, store_id="S1"))
     db.commit()
 
 
@@ -48,9 +48,9 @@ def test_purchase_success(engine_memory):
   app.app.dependency_overrides[get_db] = override_factory(engine_memory)
   payload = {
     "items": [
-      {"product_code": "P001", "quantity": 2},  # 600
-      {"product_code": "P002", "quantity": 1},  # 200
-      {"product_code": "LP003", "quantity": 3},  # 450
+      {"product_id": "P001", "quantity": 2},  # 600
+      {"product_id": "P002", "quantity": 1},  # 200
+      {"product_id": "LP003", "quantity": 3},  # 450
     ],
   }
   response = client.post("/api/v1/purchases", json=payload)
@@ -72,7 +72,7 @@ def test_purchase_success(engine_memory):
 def test_purchase_nonexistent_product(engine_memory):
   seed_products(engine_memory)
   app.app.dependency_overrides[get_db] = override_factory(engine_memory)
-  payload = {"items": [{"product_code": "NOPE", "quantity": 1}]}
+  payload = {"items": [{"product_id": "NOPE", "quantity": 1}]}
   response = client.post("/api/v1/purchases", json=payload)
   assert response.status_code == 400
   assert "NOPE" in response.json()["detail"]
@@ -81,7 +81,7 @@ def test_purchase_nonexistent_product(engine_memory):
 def test_purchase_invalid_quantity(engine_memory):
   seed_products(engine_memory)
   app.app.dependency_overrides[get_db] = override_factory(engine_memory)
-  payload = {"items": [{"product_code": "P001", "quantity": 0}]}
+  payload = {"items": [{"product_id": "P001", "quantity": 0}]}
   response = client.post("/api/v1/purchases", json=payload)
   assert response.status_code == 400
   assert "数量が不正" in response.json()["detail"]
