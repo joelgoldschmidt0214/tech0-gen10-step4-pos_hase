@@ -1,5 +1,15 @@
+import os
+import sys
+from pathlib import Path
+
 import pytest
-from database import Base
+
+# ルートディレクトリをPythonパスへ追加（pytestが -m で起動され pythonpath= が効かないケース対策）
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+  sys.path.insert(0, str(ROOT))
+
+from database import Base  # noqa: E402
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 

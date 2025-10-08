@@ -62,6 +62,11 @@ def test_purchase_success(engine_memory):
   assert data["total_price_with_tax"] == 1375
   assert data["items_count"] == 3
   assert data["tax_rate"] == 0.10
+  # transaction_code がレスポンスに含まれ、形式が期待通り
+  assert "transaction_code" in data
+  assert data["transaction_code"].startswith("TRN-")
+  # 同一値で返却されている（今回 transaction_id も display 用フォーマット）
+  assert data["transaction_code"] == data["transaction_id"]
 
 
 def test_purchase_nonexistent_product(engine_memory):

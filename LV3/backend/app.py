@@ -70,7 +70,7 @@ def get_product(product_code: str, db: Session = Depends(get_db)):  # noqa: B008
 @app.post("/api/v1/purchases", response_model=PurchaseResponse)
 def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  # noqa: B008, FAST002
   """購入処理API: 商品コードと数量のリストを受け取り取引を確定する。"""
-  TAX_RATE = 0.10
+  tax_rate = 0.10
   if not payload.items:
     raise HTTPException(status_code=400, detail="リクエストが無効です。itemsが空です。")
 
@@ -103,7 +103,7 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
       ),
     )
 
-  # 取引ヘッダ保存
+  # 取引ヘッダ保存（まだ表示用コードは未確定）
   transaction = Transaction(total_price=total_without_tax, transaction_code=None)
   db.add(transaction)
   db.flush()  # transaction.id を取得
@@ -116,16 +116,21 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
   db.commit()
 
   # レスポンス用計算 (端数処理: 内税計算 => 税抜 * (1+税率) を四捨五入/切り上げ戦略は仕様不明、ここではfloor((税抜*税率)+0.5)方式)
-  tax_amount = floor(total_without_tax * TAX_RATE + 0.5)
+  tax_amount = floor(total_without_tax * tax_rate + 0.5)
   total_with_tax = total_without_tax + tax_amount
 
-  # 簡易トランザクションID (本来は別ロジック)
-  display_transaction_id = f"TRN-{datetime.now().strftime('%Y%m%d')}-{str(transaction.id).zfill(4)}"
+  # 簡易トランザクションID生成 & 永続化
+  display_transaction_id = f"TRN-{datetime.now().astimezone().strftime('%Y%m%d')}-{str(transaction.id).zfill(4)}"
+  transaction.transaction_code = display_transaction_id
+  db.add(transaction)
+  db.commit()
+  db.refresh(transaction)
 
   return PurchaseResponse(
     transaction_id=display_transaction_id,
     total_price_without_tax=total_without_tax,
     total_price_with_tax=total_with_tax,
-    tax_rate=TAX_RATE,
+    tax_rate=tax_rate,
     items_count=len(details),
+    transaction_code=transaction.transaction_code,
   )
