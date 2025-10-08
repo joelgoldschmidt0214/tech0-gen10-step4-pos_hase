@@ -115,13 +115,6 @@ export default function PosPage() {
     }
   };
 
-  // 手動入力
-  const handleManualAdd = async () => {
-    if (!inputCode) return;
-    await handleScan(inputCode);
-    setInputCode("");
-  };
-
   // リスト削除（全リセット）
   const handleRemoveAll = () => {
     setPurchaseList([]);
@@ -293,11 +286,8 @@ export default function PosPage() {
             padding: "1.5rem",
             borderRadius: "0.75rem",
             boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-            position: "flex",
-            // left: "10%",
             top: "350px", // Headerの高さ分下げる
             bottom: "50px", // 下端は10px
-            // transform: "translateY(0%)",
             textAlign: "center",
             display: "fixed",
             flexDirection: "column",

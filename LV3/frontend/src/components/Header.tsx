@@ -120,13 +120,13 @@ export const Header = ({
           placeholder="バーコードをスキャンまたは入力"
           className="flex-grow py-2 border rounded-lg text-center text-md font-mono"
         />
-        <button
+        {/* <button
           onClick={handleScanClick}
           disabled={!code.trim()}
           className="flex items-center justify-center px-4 py-2 text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           手動登録
-        </button>
+        </button> */}
       </div>
 
       {/* 名称表示 */}

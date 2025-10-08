@@ -149,7 +149,7 @@ export default function BarcodeScanner({
     return () => {
       stopScanning();
     };
-  }, []);
+  }, [startScanning, stopScanning]); // 依存配列に追加
 
   return (
     <div
