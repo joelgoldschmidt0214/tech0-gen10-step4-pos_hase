@@ -32,7 +32,7 @@ export const Header = ({ onScan }: HeaderProps) => {
   };
 
   const handleScanError = (error: string) => {
-    console.error('バーコードスキャンエラー:', error);
+    console.error("バーコードスキャンエラー:", error);
     // モーダルを閉じる
     setShowScanner(false);
     // エラーメッセージを表示 (1回だけ)
@@ -96,7 +96,7 @@ export const Header = ({ onScan }: HeaderProps) => {
                 ✕
               </button>
             </div>
-            <BarcodeScanner 
+            <BarcodeScanner
               onScan={handleBarcodeScan}
               onError={handleScanError}
               onClose={handleCloseScanner}

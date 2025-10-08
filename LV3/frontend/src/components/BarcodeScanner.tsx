@@ -151,7 +151,7 @@ export default function BarcodeScanner({
   useEffect(() => {
     // モーダルが開かれた時に自動的にスキャンを開始
     startScanning();
-    
+
     return () => {
       stopScanning();
     };
