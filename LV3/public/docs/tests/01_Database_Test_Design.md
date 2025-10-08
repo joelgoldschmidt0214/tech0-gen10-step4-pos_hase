@@ -202,17 +202,17 @@ PYTHONPATH=. uv run pytest tests/ --cov=database --cov-report=html
 
 ## 7. テスト結果
 
-### 7.1. 現在のテスト状況
+### 7.1. 現在のテスト状況 (2025-10-08 更新)
 
-- **総テスト数**: 20個
-- **成功**: 19個 ✅
-- **失敗**: 1個 ❌ (SQLiteの外部キー制約デフォルト無効による)
+- **総テスト数**: 27個
+- **成功**: 27個 ✅
+- **失敗**: 0個
 
-### 7.2. 失敗テストの詳細
+外部キー制約は `conftest.py` の `PRAGMA foreign_keys=ON` により全テストで有効化され、`test_transaction_detail_foreign_key` も正常に制約違反を検出できています。
 
-**テストケース**: `test_transaction_detail_foreign_key`
-**原因**: SQLiteでは外部キー制約がデフォルトで無効
-**対応**: `test_constraints.py`で外部キー有効化版テストを実装済み
+### 7.2. 追加メモ: カスケード削除
+
+`Transaction` ← `TransactionDetail` 間に `ondelete=CASCADE` + SQLAlchemy リレーション `cascade="all, delete-orphan"` を設定しました。テスト `test_delete_transaction_with_details` で取引削除後に関連明細が残存しないことを確認しています。
 
 ---
 

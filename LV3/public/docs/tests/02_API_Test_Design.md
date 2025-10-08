@@ -4,6 +4,8 @@
 
 本ドキュメントは POSアプリケーション (LV3) の FastAPI ベース API（商品検索・購入処理）のテスト設計をまとめたものです。データベース単体テストで検証済みのモデル/制約を前提に、APIレイヤの I/O / バリデーション / 業務ロジック連携を確認します。
 
+2025-10-08 更新: 購入APIに `transaction_code` が永続化されレスポンスへ追加されたため関連テスト観点を追記しました。
+
 ### 1.1. テスト対象
 
 | 分類 | 対象API | メソッド | パス |
@@ -31,7 +33,7 @@
 
 ## 2. テストファイル構成
 
-```
+```text
 LV3/backend/tests/
 ├── test_api_products.py    # 商品検索APIテスト
 └── test_api_purchases.py   # 購入APIテスト
@@ -85,12 +87,13 @@ LV3/backend/tests/
 | 空リスト | items空で400エラー |
 | 通常+ローカル混在 | 問題なく合計に反映される |
 | 税計算 | 四捨五入相当 (floor(x*tax + 0.5)) |
+| 取引コード永続化 | 生成した `TRN-YYYYMMDD-XXXX` 形式のコードがDBへ保存・レスポンス一致 |
 
 ### 4.2. テストケース一覧
 
 | ID | シナリオ | リクエスト例 (items) | 期待ステータス | 主検証項目 |
 |:--|:----------|:----------------------|:---------------|:-----------|
-| C-01 | 正常複数 | P001×2,P002×1,LP003×3 | 200 | 税抜合計=1250, 税込=1375, items_count=3 |
+| C-01 | 正常複数 | P001×2,P002×1,LP003×3 | 200 | 税抜=1250/税込=1375/items_count=3/`transaction_code` 形式と一致 |
 | C-02 | 不存在商品 | NOPE×1 | 400 | detailに対象コード含む |
 | C-03 | 数量0 | P001×0 | 400 | detailに数量が不正文言 |
 | C-04 | 空配列 | [] | 400 | detail が items 空エラー |
@@ -102,7 +105,7 @@ LV3/backend/tests/
 |:-----|:-----|
 | 税率 | 10% 固定 (0.10) |
 | 税額丸め | `floor(total_without_tax * 0.10 + 0.5)` |
-| トランザクションID | `TRN-YYYYMMDD-ゼロパディングID` （DB未保存コードとは別扱い） |
+| トランザクションID/コード | `TRN-YYYYMMDD-ゼロパディングID` を生成し `transaction_code` としてDB永続化・レスポンス返却 |
 
 ### 4.4. エッジ / 今後の追加候補
 
@@ -122,7 +125,7 @@ LV3/backend/tests/
 | test_api_products.py | `test_get_product_success` | P-01 |
 | test_api_products.py | `test_get_product_prefers_regular_over_local` | P-02 |
 | test_api_products.py | `test_get_product_not_found` | P-03 |
-| test_api_purchases.py | `test_purchase_success` | C-01 |
+| test_api_purchases.py | `test_purchase_success` | C-01 (transaction_code フォーマット・一致確認含む) |
 | test_api_purchases.py | `test_purchase_nonexistent_product` | C-02 |
 | test_api_purchases.py | `test_purchase_invalid_quantity` | C-03 |
 | test_api_purchases.py | `test_purchase_empty_items` | C-04 |
