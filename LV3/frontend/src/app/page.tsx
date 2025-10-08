@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
-import Modal from "react-modal"; // モーダルライブラリをインポート
+import Modal from "react-modal";
 
 // バックエンドのAPIのURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -23,6 +23,16 @@ export default function PosPage() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [toastId, setToastId] = useState(0);
   const [modalIsOpen, setModalIsOpen] = useState(false); // モーダルの状態管理
+
+  // コード入力欄の状態
+  const [inputCode, setInputCode] = useState("");
+
+  // 直近でスキャン/入力した商品の情報
+  const [lastProduct, setLastProduct] = useState<PurchaseItem | null>(null);
+
+  // 数量変更モーダルの状態
+  const [quantityModalOpen, setQuantityModalOpen] = useState(false);
+  const [quantityInput, setQuantityInput] = useState(1);
 
   // モーダルのアプリ要素を設定
   useEffect(() => {
@@ -52,7 +62,7 @@ export default function PosPage() {
     setTotalPrice(calculateTotalPrice(purchaseList));
   }, [purchaseList]);
 
-  // スキャンボタンが押されたときに実行される関数
+  // 商品追加（スキャン or 手動入力）
   const handleScan = async (code: string) => {
     console.log(`商品検索: ${code}`); // デバッグ用ログ
     try {
@@ -70,7 +80,6 @@ export default function PosPage() {
       // 成功した場合、レスポンスのJSONを商品データに変換
       const productData = await response.json();
 
-      // --- 購入リストへの追加ロジック ---
       // すでにリストに同じ商品があるか探す
       const existingItemIndex = purchaseList.findIndex(
         (item) => item.product_id === productData.product_id
@@ -78,11 +87,14 @@ export default function PosPage() {
 
       let newList;
       let message: string;
+      let newQuantity = 1;
       if (existingItemIndex > -1) {
         // あった場合：数量を+1する
         newList = [...purchaseList];
         newList[existingItemIndex].quantity += 1;
         message = `${productData.product_name} の数量を追加しました`;
+        newQuantity = newList[existingItemIndex].quantity;
+        setLastProduct({ ...newList[existingItemIndex] }); // product_id含む全情報を反映
       } else {
         // なかった場合：新しい商品としてリストに追加する
         const newItem: PurchaseItem = {
@@ -91,9 +103,11 @@ export default function PosPage() {
         };
         newList = [...purchaseList, newItem];
         message = `${productData.product_name} をリストに追加しました`;
+        setLastProduct(newItem); // product_id含む全情報を反映
       }
 
       setPurchaseList(newList); // 合計金額はuseEffectで自動更新
+      setQuantityInput(newQuantity);
       showToast(message, "success");
     } catch (error) {
       console.error("APIの呼び出しに失敗しました:", error);
@@ -101,7 +115,43 @@ export default function PosPage() {
     }
   };
 
-  // 購入ボタンが押されたときに実行される関数
+  // 手動入力
+  const handleManualAdd = async () => {
+    if (!inputCode) return;
+    await handleScan(inputCode);
+    setInputCode("");
+  };
+
+  // リスト削除（全リセット）
+  const handleRemoveAll = () => {
+    setPurchaseList([]);
+    setLastProduct(null);
+    setTotalPrice(0);
+    setInputCode("");
+  };
+
+  // 数量変更モーダル表示
+  const handleChangeQuantityModal = () => {
+    if (lastProduct) {
+      setQuantityInput(lastProduct.quantity);
+      setQuantityModalOpen(true);
+    }
+  };
+
+  // 数量変更確定
+  const handleQuantityConfirm = () => {
+    if (!lastProduct) return;
+    const newList = purchaseList.map((item) =>
+      item.product_id === lastProduct.product_id
+        ? { ...item, quantity: quantityInput }
+        : item
+    );
+    setPurchaseList(newList);
+    setLastProduct({ ...lastProduct, quantity: quantityInput });
+    setQuantityModalOpen(false);
+  };
+
+  // 購入処理
   const handlePurchase = async () => {
     setModalIsOpen(true); // モーダルを表示
 
@@ -128,22 +178,15 @@ export default function PosPage() {
     setModalIsOpen(false); // モーダルを閉じる
     showToast("取引が成立しました", "success"); // トーストメッセージを表示
     setPurchaseList([]); // 購入リストをリセット
+    setLastProduct(null);
     setTotalPrice(0); // 合計金額をリセット
+    setInputCode("");
   };
 
-  // リスト削除ボタンや数量変更ボタンの処理もsetPurchaseListのみでOK
-  const handleRemoveItem = (productId: string) => {
-    const newList = purchaseList.filter(
-      (item) => item.product_id !== productId
-    );
-    setPurchaseList(newList);
-  };
-
-  const handleChangeQuantity = (productId: string, newQuantity: number) => {
-    const newList = purchaseList.map((item) =>
-      item.product_id === productId ? { ...item, quantity: newQuantity } : item
-    );
-    setPurchaseList(newList);
+  // 購入リストの商品選択（↑ボタン用）
+  const handleSelectItem = (item: PurchaseItem) => {
+    setLastProduct({ ...item }); // product_id含む全情報を反映
+    setQuantityInput(item.quantity);
   };
 
   // 税率
@@ -153,21 +196,36 @@ export default function PosPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans">
-      <Header onScan={handleScan} onMessage={showToast} />
+      <Header
+        onScan={handleScan}
+        onMessage={showToast}
+        lastProduct={lastProduct}
+        onRemoveAll={handleRemoveAll}
+        onChangeQuantityModal={handleChangeQuantityModal}
+        purchaseListLength={purchaseList.length}
+      />
 
-      <main className="flex-1 p-4 overflow-y-auto">
-        {/* 状態(purchaseList)をコンポーネントに渡す */}
-        <PurchaseList items={purchaseList} />
+      <main className="flex-1 p-4 overflow-y-auto flex flex-col items-center">
+        {/* 購入リスト */}
+        <div className="w-full max-w-xl mb-4">
+          <PurchaseList
+            items={purchaseList}
+            onItemSelect={handleSelectItem} // 名前を変更
+          />
+        </div>
       </main>
 
-      <footer className="flex items-center justify-between p-4 bg-white border-t border-gray-200">
-        <div className="text-left">
-          <span className="text-gray-600">合計:</span>
-          <p className="text-3xl font-bold text-gray-900">¥{totalPrice}</p>
+      {/* 合計金額表示（フッターの左:ラベル、右:金額） */}
+      <footer className="bg-white border-t border-gray-200 flex flex-col items-center">
+        <div className="w-90% max-w-xl flex items-center py-3 px-2">
+          <span className="text-gray-600 pr-5 text-lg">合計</span>
+          <p className="py-1 text-3xl font-bold text-gray-900 border-1 w-100 text-center">
+            {totalPrice.toLocaleString()}円
+          </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="w-full max-w-xl flex justify-center pb-4">
           <button
-            className={`px-10 py-4 text-white font-bold text-lg rounded-lg ${
+            className={`w-full px-10 py-5 text-white font-bold text-2xl rounded-lg transition ${
               purchaseList.length === 0
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-blue-500 hover:bg-blue-600"
@@ -180,7 +238,7 @@ export default function PosPage() {
         </div>
       </footer>
 
-      {/* モーダル表示 */}
+      {/* 購入確認モーダル */}
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
@@ -204,11 +262,15 @@ export default function PosPage() {
         <h2 className="text-xl font-bold mb-4">購入確認</h2>
         <div className="mb-2 text-lg">
           <span className="text-gray-700">合計金額（税込）:</span>
-          <span className="font-bold ml-2">¥{totalPriceWithTax}</span>
+          <span className="font-bold ml-2">
+            ¥{totalPriceWithTax.toLocaleString()}
+          </span>
         </div>
         <div className="mb-6 text-lg">
           <span className="text-gray-700">合計金額（税抜）:</span>
-          <span className="font-bold ml-2">¥{totalPriceWithoutTax}</span>
+          <span className="font-bold ml-2">
+            ¥{totalPriceWithoutTax.toLocaleString()}
+          </span>
         </div>
         <div className="flex justify-center">
           <button
@@ -218,6 +280,53 @@ export default function PosPage() {
             OK
           </button>
         </div>
+      </Modal>
+
+      {/* 数量変更モーダル */}
+      <Modal
+        isOpen={quantityModalOpen}
+        onRequestClose={() => setQuantityModalOpen(false)}
+        style={{
+          content: {
+            maxWidth: "80%",
+            margin: "auto",
+            padding: "1.5rem",
+            borderRadius: "0.75rem",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+            position: "flex",
+            // left: "10%",
+            top: "350px", // Headerの高さ分下げる
+            bottom: "50px", // 下端は10px
+            // transform: "translateY(0%)",
+            textAlign: "center",
+            display: "fixed",
+            flexDirection: "column",
+            justifyContent: "space-between", // ボタンを下端に
+            // height: "calc(100vh - 130px - 10px)",
+          },
+          overlay: {
+            backgroundColor: "rgba(0,0,0,0.2)",
+            zIndex: 1000,
+          },
+        }}
+      >
+        <div>
+          <h3 className="text-lg font-bold mb-2">数量変更</h3>
+          <input
+            type="number"
+            min={1}
+            value={quantityInput}
+            onChange={(e) => setQuantityInput(Number(e.target.value))}
+            className="w-full px-2 py-1 border rounded text-lg mb-4"
+            inputMode="numeric"
+          />
+        </div>
+        <button
+          onClick={handleQuantityConfirm}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700"
+        >
+          決定
+        </button>
       </Modal>
 
       {/* トーストメッセージ表示 */}
@@ -235,7 +344,7 @@ export default function PosPage() {
               <span className="text-sm font-medium">
                 {toast.type === "success" ? "✓" : "⚠️"}
               </span>
-              <span className="text-sm">{toast.message}</span>
+              <span className="text-lg">{toast.message}</span>
             </div>
           </div>
         ))}
