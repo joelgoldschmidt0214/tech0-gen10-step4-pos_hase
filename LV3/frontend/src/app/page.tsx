@@ -288,9 +288,9 @@ export default function PosPage() {
             // left: "10%",
             top: "350px", // Headerの高さ分下げる
             bottom: "50px", // 下端は10px
-            // transform: "translateX(-50%)",
+            // transform: "translateY(0%)",
             textAlign: "center",
-            display: "flex",
+            display: "fixed",
             flexDirection: "column",
             justifyContent: "space-between", // ボタンを下端に
             // height: "calc(100vh - 130px - 10px)",
@@ -335,7 +335,7 @@ export default function PosPage() {
               <span className="text-sm font-medium">
                 {toast.type === "success" ? "✓" : "⚠️"}
               </span>
-              <span className="text-sm">{toast.message}</span>
+              <span className="text-lg">{toast.message}</span>
             </div>
           </div>
         ))}
