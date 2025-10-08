@@ -83,6 +83,8 @@ export default function BarcodeScanner({
                 "対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。";
               setError(errorMsg);
               onError?.(errorMsg);
+              stopScanning(); // スキャンを停止
+              onClose?.(); // エラー時もモーダルを閉じる
               return;
             }
 
@@ -92,6 +94,8 @@ export default function BarcodeScanner({
                 "JANコードのチェックディジットが正しくありません。";
               setError(errorMsg);
               onError?.(errorMsg);
+              stopScanning(); // スキャンを停止
+              onClose?.(); // エラー時もモーダルを閉じる
               return;
             }
 
@@ -120,6 +124,8 @@ export default function BarcodeScanner({
         "カメラへのアクセスに失敗しました。カメラの権限を確認してください。";
       setError(errorMsg);
       onError?.(errorMsg);
+      stopScanning(); // スキャンを停止
+      onClose?.(); // カメラエラー時もモーダルを閉じる
       setIsScanning(false);
       console.error("Camera access error:", err);
     }

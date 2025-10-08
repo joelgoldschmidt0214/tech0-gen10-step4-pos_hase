@@ -32,6 +32,10 @@ export const Header = ({ onScan }: HeaderProps) => {
   };
 
   const handleScanError = (error: string) => {
+    console.error('バーコードスキャンエラー:', error);
+    // モーダルを閉じる
+    setShowScanner(false);
+    // エラーメッセージを表示 (1回だけ)
     alert(error);
   };
 

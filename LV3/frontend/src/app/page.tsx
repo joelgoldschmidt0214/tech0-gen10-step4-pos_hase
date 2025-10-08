@@ -2,7 +2,6 @@
 "use client"; // ★ Stateを使うため、クライアントコンポーネント宣言を追加
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
 
@@ -16,13 +15,16 @@ export default function PosPage() {
 
   // スキャンボタンが押されたときに実行される関数
   const handleScan = async (code: string) => {
+    console.log(`商品検索: ${code}`); // デバッグ用ログ
     try {
-      // バックエンドのAPIを呼び出す
+      // バックエンドのAPIを呼び出す (JANコードをproduct_codeとして使用)
       const response = await fetch(`${API_BASE_URL}/api/v1/products/${code}`);
 
       // 商品が見つからなかった場合 (404エラー)
       if (!response.ok) {
         const errorData = await response.json();
+        // alertの代わりにconsole.errorでログ出力し、1回だけ表示
+        console.error(`商品検索エラー: ${errorData.detail}`);
         alert(`エラー: ${errorData.detail}`);
         return;
       }
@@ -73,12 +75,6 @@ export default function PosPage() {
           <p className="text-3xl font-bold text-gray-900">¥{totalPrice}</p>
         </div>
         <div className="flex space-x-2">
-          <Link
-            href="/barcode-test"
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium text-sm"
-          >
-            バーコードテスト
-          </Link>
           <button className="px-10 py-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 font-bold text-lg">
             購入
           </button>
