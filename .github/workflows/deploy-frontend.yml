@@ -54,12 +54,20 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
-      # --- Step 4: 依存関係のインストール ---
+      # --- Step 4: pnpm-lock.yamlの存在確認 ---
+      - name: Check for pnpm-lock.yaml
+        run: |
+          if [ ! -f "${{ github.workspace }}/pnpm-lock.yaml" ]; then
+            echo "Error: pnpm-lock.yaml not found. Please generate it before running this workflow."
+            exit 1
+          fi
+
+      # --- Step 5: 依存関係のインストール ---
       - name: Install dependencies
         run: |
           cp ${{ github.workspace }}/.npmrc.prod ${{ github.workspace }}/.npmrc
           ls -la ${{ github.workspace }} # デバッグ用: .npmrcファイルが正しくコピーされたか確認
-          npm install --frozen-lockfile
+          pnpm install --frozen-lockfile
 
       # --- Step 5: Next.jsアプリケーションのビルド ---
       - name: Build Next.js app
