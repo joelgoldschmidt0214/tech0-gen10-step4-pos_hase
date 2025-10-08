@@ -57,8 +57,8 @@ jobs:
       # --- Step 4: 依存関係のインストール ---
       - name: Install dependencies
         run: |
-          cp /.npmrc.prod /.npmrc
-          ls -la / # デバッグ用: .npmrcファイルが正しくコピーされたか確認
+          cp ${{ github.workspace }}/.npmrc.prod ${{ github.workspace }}/.npmrc
+          ls -la ${{ github.workspace }} # デバッグ用: .npmrcファイルが正しくコピーされたか確認
           npm install --frozen-lockfile
 
       # --- Step 5: Next.jsアプリケーションのビルド ---
