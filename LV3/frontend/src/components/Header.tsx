@@ -1,5 +1,4 @@
 // LV3/frontend/src/components/Header.tsx
-import { ScanLine } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BarcodeScanner from "./BarcodeScanner";
 import { PurchaseItem } from "./PurchaseList";
