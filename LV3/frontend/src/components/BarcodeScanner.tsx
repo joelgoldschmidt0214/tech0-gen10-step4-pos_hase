@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import { scanImageData } from "@undecaf/zbar-wasm";
 
 interface BarcodeScannerProps {
   onScan?: (janCode: string) => void;
@@ -15,20 +15,19 @@ export default function BarcodeScanner({
   compact = false,
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const isProcessingRef = useRef(false);
+
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
 
-  // JANコード形式チェック（8桁または13桁の数字）
-  const isValidJAN = (code: string): boolean => {
-    return /^(\d{8}|\d{13})$/.test(code);
-  };
-
-  // JANコードのチェックディジット検証
+  // JANコード形式/チェックディジット検証
+  const isValidJAN = (code: string): boolean => /^(\d{8}|\d{13})$/.test(code);
   const validateJANCheckDigit = (code: string): boolean => {
     if (code.length === 8) {
-      // JAN-8のチェックディジット計算
       const digits = code.slice(0, 7).split("").map(Number);
       const oddSum = digits
         .filter((_, i) => i % 2 === 0)
@@ -39,7 +38,6 @@ export default function BarcodeScanner({
       const checkDigit = (10 - ((oddSum + evenSum * 3) % 10)) % 10;
       return checkDigit === Number(code[7]);
     } else if (code.length === 13) {
-      // JAN-13のチェックディジット計算
       const digits = code.slice(0, 12).split("").map(Number);
       const oddSum = digits
         .filter((_, i) => i % 2 === 0)
@@ -53,6 +51,81 @@ export default function BarcodeScanner({
     return false;
   };
 
+  // zbar でのフレームスキャンループ
+  const scanLoop = async () => {
+    if (!isScanning || !videoRef.current) {
+      return;
+    }
+    if (isProcessingRef.current) {
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas =
+      canvasRef.current ??
+      (canvasRef.current = document.createElement("canvas"));
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+
+    // 初期化（動画メタデータが読み込まれたらサイズ確定）
+    if (
+      canvas.width !== video.videoWidth ||
+      canvas.height !== video.videoHeight
+    ) {
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+    }
+
+    try {
+      isProcessingRef.current = true;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // zbar のスキャン
+      const results = (await scanImageData(imageData)) as Array<{
+        type: string;
+        data: string;
+        quality: number;
+        polygon: Array<{ x: number; y: number }>;
+      }>;
+
+      if (results && results.length > 0) {
+        const scannedCode = results[0].data?.trim();
+
+        if (scannedCode) {
+          if (!isValidJAN(scannedCode)) {
+            const errorMsg =
+              "対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。";
+            setError(errorMsg);
+            onError?.(errorMsg);
+          } else if (!validateJANCheckDigit(scannedCode)) {
+            const errorMsg =
+              "JANコードのチェックディジットが正しくありません。";
+            setError(errorMsg);
+            onError?.(errorMsg);
+          } else {
+            if (lastScanned !== scannedCode) {
+              setLastScanned(scannedCode);
+              setError(null);
+              onScan?.(scannedCode);
+              setTimeout(() => setLastScanned(null), 1000);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("zbar scanning error:", e);
+    } finally {
+      isProcessingRef.current = false;
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+    }
+  };
+
   const startScanning = async () => {
     try {
       if (!videoRef.current) return;
@@ -60,92 +133,63 @@ export default function BarcodeScanner({
       setError(null);
       setIsScanning(true);
 
-      const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
-
-      // getUserMediaでカメラストリームを取得
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // 背面カメラを優先
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
       });
       setStreamRef(stream);
-      videoRef.current.srcObject = stream;
 
-      reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result, error) => {
-          if (result) {
-            const scannedCode = result.getText();
+      const video = videoRef.current;
+      video.srcObject = stream;
+      video.playsInline = true;
+      video.muted = true;
 
-            // JANコード形式チェック
-            if (!isValidJAN(scannedCode)) {
-              const errorMsg =
-                "対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。";
-              setError(errorMsg);
-              onError?.(errorMsg);
-              return;
-            }
+      // ここで onloadedmetadata を使う
+      await new Promise<void>((resolve) => {
+        video.onloadedmetadata = () => {
+          video.play();
+          resolve();
+        };
+      });
 
-            // チェックディジット検証
-            if (!validateJANCheckDigit(scannedCode)) {
-              const errorMsg =
-                "JANコードのチェックディジットが正しくありません。";
-              setError(errorMsg);
-              onError?.(errorMsg);
-              return;
-            }
-
-            // 連続読み取り防止（同じコードを1秒以内に読み取らない）
-            if (lastScanned === scannedCode) return;
-
-            setLastScanned(scannedCode);
-            setError(null);
-            onScan?.(scannedCode);
-
-            // 1秒後にlastScannedをリセット（連続スキャンのため）
-            setTimeout(() => setLastScanned(null), 1000);
-          }
-
-          if (
-            error &&
-            !(error instanceof Error && error.name === "NotFoundException")
-          ) {
-            console.error("Barcode scanning error:", error);
-          }
-        }
-      );
+      // ループ開始
+      if (animationFrameRef.current)
+        cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
     } catch (err) {
       const errorMsg =
         "カメラへのアクセスに失敗しました。カメラの権限を確認してください。";
       setError(errorMsg);
       onError?.(errorMsg);
-      stopScanning(); // スキャンを停止
+      stopScanning();
       setIsScanning(false);
       console.error("Camera access error:", err);
     }
   };
 
-  const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
-
   const stopScanning = () => {
-    // カメラストリームを停止
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    isProcessingRef.current = false;
+
     if (streamRef) {
       streamRef.getTracks().forEach((track) => track.stop());
       setStreamRef(null);
     }
 
-    if (readerRef.current) {
-      readerRef.current = null;
-    }
     setIsScanning(false);
     setError(null);
     setLastScanned(null);
   };
 
   useEffect(() => {
-    // モーダルが開かれた時に自動的にスキャンを開始
     startScanning();
-
     return () => {
       stopScanning();
     };
@@ -165,7 +209,9 @@ export default function BarcodeScanner({
               ? "w-full h-32 bg-gray-200 rounded-lg object-cover"
               : "w-80 h-60 bg-gray-200 rounded-lg"
           }
-          // style={{ transform: "scaleX(-1)" }} // ミラー表示
+          autoPlay
+          muted
+          playsInline
         />
         {!isScanning && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
@@ -173,21 +219,22 @@ export default function BarcodeScanner({
           </div>
         )}
 
-        {/* スキャンエリアのガイド（コンパクトモード時のみ） */}
         {compact && isScanning && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="border-2 border-red-500 border-dashed bg-red-500 bg-opacity-10 rounded-lg">
-              <div className="w-48 h-16 flex items-center justify-center">
-                <span className="text-red-600 text-xs font-semibold">
-                  バーコードをここに合わせてください
-                </span>
-              </div>
+            {/* 枠線のみ */}
+            <div className="absolute inset-0 border-2 border-red-500 border-dashed rounded-lg"></div>
+            {/* 中央の赤い水平線 */}
+            <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-red-500"></div>
+            {/* ガイドテキスト（必要なら） */}
+            <div className="absolute bottom-2 w-full flex justify-center">
+              <span className="text-red-600 text-xs font-semibold bg-white bg-opacity-80 px-2 rounded">
+                バーコードを中央の線に合わせてください
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* エラー表示（コンパクト時は簡略化） */}
       {error && (
         <div
           className={
@@ -200,7 +247,6 @@ export default function BarcodeScanner({
         </div>
       )}
 
-      {/* スキャン制御ボタン（標準モード時のみ） */}
       {!compact && (
         <div className="flex space-x-2">
           {!isScanning ? (
@@ -221,7 +267,6 @@ export default function BarcodeScanner({
         </div>
       )}
 
-      {/* 説明テキスト（標準モード時のみ） */}
       {!compact && (
         <div className="text-sm text-gray-600 text-center max-w-md">
           <p>
