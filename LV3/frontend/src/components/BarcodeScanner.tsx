@@ -53,45 +53,66 @@ export default function BarcodeScanner({
 
   // zbar でのフレームスキャンループ
   const scanLoop = async () => {
-    if (!isScanning || !videoRef.current) {
-      return;
-    }
-    if (isProcessingRef.current) {
+    if (!isScanning || !videoRef.current || isProcessingRef.current) {
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
 
     const video = videoRef.current;
+    if (video.readyState < video.HAVE_METADATA) {
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+
     const canvas =
       canvasRef.current ??
       (canvasRef.current = document.createElement("canvas"));
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) {
+      console.error("Canvas context is null");
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
 
-    // 初期化（動画メタデータが読み込まれたらサイズ確定）
-    if (
-      canvas.width !== video.videoWidth ||
-      canvas.height !== video.videoHeight
-    ) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
+    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
     }
 
     try {
       isProcessingRef.current = true;
 
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // 中央の領域だけを切り出してスキャンする (ROI)
+      const roiX = videoWidth * 0.1;
+      const roiY = videoHeight * 0.35;
+      const roiWidth = videoWidth * 0.8;
+      const roiHeight = videoHeight * 0.3;
 
-      // zbar のスキャン
+      ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+      const imageData = ctx.getImageData(roiX, roiY, roiWidth, roiHeight);
+
+      // --- デバッグ用 ---
+      const debugCanvas = document.getElementById(
+        "debugCanvas"
+      ) as HTMLCanvasElement;
+      if (debugCanvas) {
+        const debugCtx = debugCanvas.getContext("2d");
+        if (!debugCtx) {
+          console.error("Debug canvas context is null");
+          animationFrameRef.current = requestAnimationFrame(scanLoop);
+          return;
+        }
+        debugCanvas.width = roiWidth;
+        debugCanvas.height = roiHeight;
+        debugCtx.putImageData(imageData, 0, 0);
+      }
+      // --- デバッグ終了 ---
+
       const results = (await scanImageData(imageData)) as Array<{
-        type: string;
         data: string;
-        quality: number;
-        polygon: Array<{ x: number; y: number }>;
       }>;
 
       if (results && results.length > 0) {
@@ -188,11 +209,47 @@ export default function BarcodeScanner({
     setLastScanned(null);
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    await img.decode();
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Canvas context is null");
+      return;
+    }
+
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    try {
+      const results = await scanImageData(imageData);
+      if (results.length > 0) {
+        console.log("静的画像からのスキャン成功:", results[0].data);
+        alert("スキャン成功！: " + results[0].data);
+      } else {
+        console.log("静的画像からのスキャン失敗: バーコードが見つかりません。");
+        alert("スキャン失敗");
+      }
+    } catch (error) {
+      console.error("静的画像スキャンエラー:", error);
+    }
+  };
+
   useEffect(() => {
     startScanning();
     return () => {
       stopScanning();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -275,6 +332,23 @@ export default function BarcodeScanner({
           <p>文具などの商品バーコードに対応しています。</p>
         </div>
       )}
+
+      {/* デバッグ用にスキャン対象領域を表示するcanvas */}
+      {!compact && (
+        <div>
+          <p className="text-sm font-bold mt-4">
+            デバッグビュー (スキャン対象領域)
+          </p>
+          <canvas
+            id="debugCanvas"
+            className="border-2 border-dashed border-blue-500"
+          ></canvas>
+        </div>
+      )}
+
+      <hr />
+      <h3>静的画像テスト</h3>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
     </div>
   );
 }
