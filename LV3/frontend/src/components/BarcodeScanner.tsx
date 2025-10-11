@@ -17,12 +17,20 @@ export default function BarcodeScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const isScanningRef = useRef(false); // useRefに変更
   const isProcessingRef = useRef(false);
 
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
+  const lastScannedTimeRef = useRef<number>(0); // 最後にスキャンした時刻
+  
+  // デジタルズーム倍率（1.0=ズームなし、2.0=2倍）
+  const zoom = 1.5;
+  
+  // スキャンインターバル（ミリ秒）
+  const SCAN_INTERVAL = 1000;
 
   // JANコード形式/チェックディジット検証
   const isValidJAN = (code: string): boolean => /^(\d{8}|\d{13})$/.test(code);
@@ -51,9 +59,61 @@ export default function BarcodeScanner({
     return false;
   };
 
+  // 画像前処理: コントラスト強化とシャープ化
+  const preprocessImage = (imageData: ImageData): ImageData => {
+    const data = imageData.data;
+    const processed = new ImageData(
+      new Uint8ClampedArray(data),
+      imageData.width,
+      imageData.height
+    );
+    const pData = processed.data;
+
+    // 1. グレースケール変換 + コントラスト強化
+    const contrast = 1.5; // コントラスト係数
+    const factor = (259 * (contrast + 1)) / (259 - contrast);
+
+    for (let i = 0; i < data.length; i += 4) {
+      // グレースケール
+      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      
+      // コントラスト強化
+      const enhanced = factor * (gray - 128) + 128;
+      const clamped = Math.max(0, Math.min(255, enhanced));
+      
+      pData[i] = pData[i + 1] = pData[i + 2] = clamped;
+      pData[i + 3] = data[i + 3];
+    }
+
+    // 2. シャープ化フィルタ（3x3カーネル）
+    const width = imageData.width;
+    const height = imageData.height;
+    const sharpened = new Uint8ClampedArray(pData);
+
+    const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0]; // シャープ化カーネル
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let sum = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const idx = ((y + ky) * width + (x + kx)) * 4;
+            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+            sum += pData[idx] * kernel[kernelIdx];
+          }
+        }
+        const idx = (y * width + x) * 4;
+        const value = Math.max(0, Math.min(255, sum));
+        sharpened[idx] = sharpened[idx + 1] = sharpened[idx + 2] = value;
+      }
+    }
+
+    return new ImageData(sharpened, width, height);
+  };
+
   // zbar でのフレームスキャンループ
   const scanLoop = async () => {
-    if (!isScanning || !videoRef.current || isProcessingRef.current) {
+    if (!isScanningRef.current || !videoRef.current || isProcessingRef.current) {
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
@@ -69,13 +129,17 @@ export default function BarcodeScanner({
       (canvasRef.current = document.createElement("canvas"));
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) {
-      console.error("Canvas context is null");
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
 
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
+
+    if (videoWidth === 0 || videoHeight === 0) {
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
 
     if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
       canvas.width = videoWidth;
@@ -85,14 +149,34 @@ export default function BarcodeScanner({
     try {
       isProcessingRef.current = true;
 
-      // 中央の領域だけを切り出してスキャンする (ROI)
-      const roiX = videoWidth * 0.1;
-      const roiY = videoHeight * 0.35;
-      const roiWidth = videoWidth * 0.8;
-      const roiHeight = videoHeight * 0.3;
+      // ズーム処理: 中央部分を拡大
+      const zoomedWidth = videoWidth / zoom;
+      const zoomedHeight = videoHeight / zoom;
+      const sx = (videoWidth - zoomedWidth) / 2;
+      const sy = (videoHeight - zoomedHeight) / 2;
 
-      ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-      const imageData = ctx.getImageData(roiX, roiY, roiWidth, roiHeight);
+      ctx.drawImage(
+        video,
+        sx,
+        sy,
+        zoomedWidth,
+        zoomedHeight,
+        0,
+        0,
+        videoWidth,
+        videoHeight
+      );
+
+      // 中央の領域だけを切り出してスキャンする (ROI)
+      const roiX = Math.floor(videoWidth * 0.1);
+      const roiY = Math.floor(videoHeight * 0.35);
+      const roiWidth = Math.floor(videoWidth * 0.8);
+      const roiHeight = Math.floor(videoHeight * 0.3);
+
+      let imageData = ctx.getImageData(roiX, roiY, roiWidth, roiHeight);
+
+      // 画像前処理
+      imageData = preprocessImage(imageData);
 
       // --- デバッグ用 ---
       const debugCanvas = document.getElementById(
@@ -100,28 +184,46 @@ export default function BarcodeScanner({
       ) as HTMLCanvasElement;
       if (debugCanvas) {
         const debugCtx = debugCanvas.getContext("2d");
-        if (!debugCtx) {
-          console.error("Debug canvas context is null");
-          animationFrameRef.current = requestAnimationFrame(scanLoop);
-          return;
+        if (debugCtx) {
+          debugCanvas.width = roiWidth;
+          debugCanvas.height = roiHeight;
+          debugCtx.putImageData(imageData, 0, 0);
         }
-        debugCanvas.width = roiWidth;
-        debugCanvas.height = roiHeight;
-        debugCtx.putImageData(imageData, 0, 0);
       }
       // --- デバッグ終了 ---
 
       const results = (await scanImageData(imageData)) as Array<{
-        data: string;
+        data: string | Uint8Array;
       }>;
 
       if (results && results.length > 0) {
-        const scannedCode = results[0].data?.trim();
+        // dataが文字列かTypedArrayかチェック
+        let scannedCode: string;
+        const rawData = results[0].data;
+        
+        if (typeof rawData === 'string') {
+          scannedCode = rawData.trim();
+        } else if (ArrayBuffer.isView(rawData)) {
+          // TypedArray (Uint8Array, Int8Array等) の場合
+          const uint8Array = rawData instanceof Uint8Array 
+            ? rawData 
+            : new Uint8Array(rawData.buffer, rawData.byteOffset, rawData.byteLength);
+          const decoder = new TextDecoder('utf-8');
+          scannedCode = decoder.decode(uint8Array).trim();
+        } else if (Array.isArray(rawData)) {
+          // 通常の配列の場合
+          const uint8Array = new Uint8Array(rawData);
+          const decoder = new TextDecoder('utf-8');
+          scannedCode = decoder.decode(uint8Array).trim();
+        } else {
+          // その他の型は文字列化を試みる
+          scannedCode = String(rawData || '').trim();
+        }
 
         if (scannedCode) {
           if (!isValidJAN(scannedCode)) {
             const errorMsg =
-              "対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。";
+              `対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。`;
             setError(errorMsg);
             onError?.(errorMsg);
           } else if (!validateJANCheckDigit(scannedCode)) {
@@ -130,11 +232,18 @@ export default function BarcodeScanner({
             setError(errorMsg);
             onError?.(errorMsg);
           } else {
-            if (lastScanned !== scannedCode) {
+            // 連続読み取り防止: インターバルベースで制御
+            const now = Date.now();
+            const timeSinceLastScan = now - lastScannedTimeRef.current;
+            
+            if (timeSinceLastScan >= SCAN_INTERVAL) {
+              console.log('[BarcodeScanner] Scan approved:', scannedCode, 'interval:', timeSinceLastScan);
+              lastScannedTimeRef.current = now;
               setLastScanned(scannedCode);
               setError(null);
               onScan?.(scannedCode);
-              setTimeout(() => setLastScanned(null), 1000);
+            } else {
+              console.log('[BarcodeScanner] Scan blocked by interval:', scannedCode, 'remaining:', SCAN_INTERVAL - timeSinceLastScan);
             }
           }
         }
@@ -151,14 +260,15 @@ export default function BarcodeScanner({
     try {
       if (!videoRef.current) return;
 
+      isScanningRef.current = true;
       setError(null);
       setIsScanning(true);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false,
       });
@@ -169,11 +279,10 @@ export default function BarcodeScanner({
       video.playsInline = true;
       video.muted = true;
 
-      // ここで onloadedmetadata を使う
       await new Promise<void>((resolve) => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve();
+        video.onloadedmetadata = async () => {
+          await video.play();
+          setTimeout(resolve, 100);
         };
       });
 
@@ -187,12 +296,15 @@ export default function BarcodeScanner({
       setError(errorMsg);
       onError?.(errorMsg);
       stopScanning();
+      isScanningRef.current = false;
       setIsScanning(false);
       console.error("Camera access error:", err);
     }
   };
 
   const stopScanning = () => {
+    isScanningRef.current = false;
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -207,6 +319,7 @@ export default function BarcodeScanner({
     setIsScanning(false);
     setError(null);
     setLastScanned(null);
+    lastScannedTimeRef.current = 0; // リセット
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

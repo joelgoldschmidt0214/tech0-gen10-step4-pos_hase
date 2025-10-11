@@ -47,6 +47,7 @@ export const Header = ({
   };
 
   const handleBarcodeScan = (scannedCode: string) => {
+    console.log('[Header] Barcode scanned:', scannedCode);
     setCode(scannedCode);
     // インターバル判定削除
     onScan(scannedCode);
