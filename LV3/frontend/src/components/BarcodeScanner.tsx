@@ -53,15 +53,17 @@ export default function BarcodeScanner({
 
   // zbar でのフレームスキャンループ
   const scanLoop = async () => {
-    if (!isScanning || !videoRef.current) {
-      return;
-    }
-    if (isProcessingRef.current) {
+    if (!isScanning || !videoRef.current || isProcessingRef.current) {
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
 
     const video = videoRef.current;
+    if (video.readyState < video.HAVE_METADATA) {
+      animationFrameRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+
     const canvas =
       canvasRef.current ??
       (canvasRef.current = document.createElement("canvas"));
@@ -71,27 +73,42 @@ export default function BarcodeScanner({
       return;
     }
 
-    // 初期化（動画メタデータが読み込まれたらサイズ確定）
-    if (
-      canvas.width !== video.videoWidth ||
-      canvas.height !== video.videoHeight
-    ) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
+    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
     }
 
     try {
       isProcessingRef.current = true;
 
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // 中央の領域だけを切り出してスキャンする (ROI)
+      const roiX = videoWidth * 0.1;
+      const roiY = videoHeight * 0.35;
+      const roiWidth = videoWidth * 0.8;
+      const roiHeight = videoHeight * 0.3;
 
-      // zbar のスキャン
+      ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+      const imageData = ctx.getImageData(roiX, roiY, roiWidth, roiHeight);
+
+      // --- デバッグ用 ---
+      const debugCanvas = document.getElementById(
+        "debugCanvas"
+      ) as HTMLCanvasElement;
+      if (debugCanvas) {
+        const debugCtx = debugCanvas.getContext("2d");
+        if (debugCtx) {
+          debugCanvas.width = roiWidth;
+          debugCanvas.height = roiHeight;
+          debugCtx.putImageData(imageData, 0, 0);
+        }
+      }
+      // --- デバッグ終了 ---
+
       const results = (await scanImageData(imageData)) as Array<{
-        type: string;
         data: string;
-        quality: number;
-        polygon: Array<{ x: number; y: number }>;
       }>;
 
       if (results && results.length > 0) {
@@ -273,6 +290,19 @@ export default function BarcodeScanner({
             JANコード（8桁または13桁）のバーコードをカメラに向けてスキャンしてください。
           </p>
           <p>文具などの商品バーコードに対応しています。</p>
+        </div>
+      )}
+
+      {/* デバッグ用にスキャン対象領域を表示するcanvas */}
+      {!compact && (
+        <div>
+          <p className="text-sm font-bold mt-4">
+            デバッグビュー (スキャン対象領域)
+          </p>
+          <canvas
+            id="debugCanvas"
+            className="border-2 border-dashed border-blue-500"
+          ></canvas>
         </div>
       )}
     </div>
