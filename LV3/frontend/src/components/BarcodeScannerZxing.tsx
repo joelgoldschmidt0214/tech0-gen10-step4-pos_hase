@@ -257,6 +257,7 @@ export default function BarcodeScannerZxing({
     return () => {
       stopScanning();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const successRate = diagnostics.scanAttempts > 0 

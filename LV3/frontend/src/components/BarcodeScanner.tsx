@@ -249,6 +249,7 @@ export default function BarcodeScanner({
     return () => {
       stopScanning();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

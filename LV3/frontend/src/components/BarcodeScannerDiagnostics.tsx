@@ -160,9 +160,9 @@ export default function BarcodeScannerDiagnostics() {
         } else {
           statsRef.current.failures += 1;
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         statsRef.current.failures += 1;
-        lastError = e.message || "Unknown error";
+        lastError = e instanceof Error ? e.message : "Unknown error";
       }
 
       const endTime = performance.now();
@@ -209,7 +209,7 @@ export default function BarcodeScannerDiagnostics() {
       };
 
       setDiagnostics(newDiagnostics);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Diagnostic error:", e);
     } finally {
       animationFrameRef.current = requestAnimationFrame(diagnosticLoop);
@@ -279,8 +279,8 @@ export default function BarcodeScannerDiagnostics() {
         const dummyData = new ImageData(1, 1);
         await scanImageData(dummyData);
         setZbarReady(true);
-      } catch (e) {
-        console.log("zbar-wasm initialized");
+      } catch {
+        // エラーでも初期化完了とみなす
         setZbarReady(true);
       }
     };
@@ -290,6 +290,7 @@ export default function BarcodeScannerDiagnostics() {
     return () => {
       stopScanning();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const successRate = diagnostics.scanAttempts > 0 
