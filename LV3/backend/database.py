@@ -134,7 +134,7 @@ class TransactionSchema(BaseModel):
 class TransactionDetailSchema(BaseModel):
   transaction_id: int
   product_id: str
-  product_product_name: str
+  product_name: str
   unit_price: int
   quantity: int
   model_config = ConfigDict(from_attributes=True)
