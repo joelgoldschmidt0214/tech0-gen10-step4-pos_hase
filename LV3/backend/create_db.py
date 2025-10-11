@@ -31,29 +31,29 @@ def setup_database():
     if db.query(Product).first() is None:
       print("商品マスタに初期データを投入しています...")
       products_to_create = [
-        # Tombow消しゴム
-        Product(product_id="4901991654017", product_name="MONO消しゴム", price=100),
-        Product(product_id="4901991654024", product_name="MONO消しゴム 小", price=80),
-        Product(product_id="4901991654031", product_name="MONO消しゴム ブラック", price=120),
-        Product(product_id="4901991654048", product_name="MONO消しゴム 限定カラー", price=150),
-        # Tombowボールペン・マーカー
-        Product(product_id="4901991501014", product_name="ABTデュアルブラッシュペン 黒", price=350),
-        Product(product_id="4901991501021", product_name="ABTデュアルブラッシュペン 赤", price=350),
-        Product(product_id="4901991501038", product_name="ABTデュアルブラッシュペン 青", price=350),
-        Product(product_id="4901991501045", product_name="ABTデュアルブラッシュペン 緑", price=350),
-        Product(product_id="4901991501052", product_name="ABTデュアルブラッシュペン 黄", price=350),
-        Product(product_id="4901991501069", product_name="ABTデュアルブラッシュペン ピンク", price=350),
-        # Tombowシャープペン
-        Product(product_id="4901991701011", product_name="MONOグラフ シャープペン 0.5mm", price=400),
-        Product(product_id="4901991701028", product_name="MONOグラフ シャープペン 0.3mm", price=400),
-        Product(product_id="4901991701035", product_name="MONOグラフ シャープペン 限定色", price=450),
-        Product(product_id="4901991701042", product_name="ZOOM シャープペン 0.5mm", price=600),
-        Product(product_id="4901991701059", product_name="ZOOM シャープペン 0.3mm", price=600),
-        # Tombow修正テープ
-        Product(product_id="4901991901015", product_name="MONO修正テープ 5mm", price=250),
-        Product(product_id="4901991901022", product_name="MONO修正テープ 4.2mm", price=250),
-        Product(product_id="4901991901039", product_name="MONO修正テープ 限定色", price=300),
-        # Tombowのり
+        # Tombow消しゴム（修正済み）
+        Product(product_id="4901991654011", product_name="MONO消しゴム", price=100),
+        Product(product_id="4901991654028", product_name="MONO消しゴム 小", price=80),
+        Product(product_id="4901991654035", product_name="MONO消しゴム ブラック", price=120),
+        Product(product_id="4901991654042", product_name="MONO消しゴム 限定カラー", price=150),
+        # Tombowボールペン・マーカー（修正済み）
+        Product(product_id="4901991501018", product_name="ABTデュアルブラッシュペン 黒", price=350),
+        Product(product_id="4901991501025", product_name="ABTデュアルブラッシュペン 赤", price=350),
+        Product(product_id="4901991501032", product_name="ABTデュアルブラッシュペン 青", price=350),
+        Product(product_id="4901991501049", product_name="ABTデュアルブラッシュペン 緑", price=350),
+        Product(product_id="4901991501056", product_name="ABTデュアルブラッシュペン 黄", price=350),
+        Product(product_id="4901991501063", product_name="ABTデュアルブラッシュペン ピンク", price=350),
+        # Tombowシャープペン（修正済み）
+        Product(product_id="4901991701012", product_name="MONOグラフ シャープペン 0.5mm", price=400),
+        Product(product_id="4901991701029", product_name="MONOグラフ シャープペン 0.3mm", price=400),
+        Product(product_id="4901991701036", product_name="MONOグラフ シャープペン 限定色", price=450),
+        Product(product_id="4901991701043", product_name="ZOOM シャープペン 0.5mm", price=600),
+        Product(product_id="4901991701050", product_name="ZOOM シャープペン 0.3mm", price=600),
+        # Tombow修正テープ（修正済み）
+        Product(product_id="4901991901016", product_name="MONO修正テープ 5mm", price=250),
+        Product(product_id="4901991901023", product_name="MONO修正テープ 4.2mm", price=250),
+        Product(product_id="4901991901030", product_name="MONO修正テープ 限定色", price=300),
+        # Tombowのり（OK）
         Product(product_id="4901992001012", product_name="ピットのり スティックタイプ", price=180),
         Product(product_id="4901992001029", product_name="ピットのり 液体タイプ", price=200),
         Product(product_id="4901992001036", product_name="ピットのり 限定パッケージ", price=220),
