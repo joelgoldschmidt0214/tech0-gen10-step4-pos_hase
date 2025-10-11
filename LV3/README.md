@@ -4,49 +4,200 @@
 
 ## 概要
 
-このプロジェクトは、店員操作を想定したモバイルPOSアプリケーションであり、LV3の実用レベルの機能を実装することを目的としています。
-顧客が商品をスキャンし、リストを編集し、最終的に会計処理を行うまでの一連のフローをサポートします。
+このプロジェクトは、店員が商品をスキャンし、購入リストを編集し、会計処理を行うまでの一連のフローをサポートするモバイルPOSアプリケーションです。バーコードスキャナー機能を搭載し、リアルタイムで商品情報を取得して購入リストに追加できます。
+
+## 主な機能
+
+- **バーコードスキャン**: カメラを使ったリアルタイムバーコード読み取り（ZXing Browser）
+- **商品検索**: JANコードによる商品マスタ検索（通常マスタ→ローカル拡張マスタの順）
+- **購入リスト管理**: 商品の追加、数量変更、削除
+- **会計処理**: 税込価格を自動計算（表示・レスポンス用）。DBには税抜合計を保存して取引確定
+- **トランザクション管理**: 取引ヘッダと明細の永続化、トランザクションコードの自動生成
 
 ## 技術スタック
 
-- **Frontend:** Next.js (TypeScript, App Router, Node.js 22.x), Tailwind CSS
-- **Backend:** FastAPI (Python 3.12), SQLAlchemy, Pydantic
-- **Database:** MySQL (Production), SQLite (Development)
-- **Deployment:** Azure App Service (Frontend/Backend), Azure Database for MySQL
-- **CI/CD:** GitHub Actions
+### Frontend
 
-## プロジェクトドキュメント
+- **Framework**: Next.js 15.5.4 (App Router, React 19, TypeScript)
+- **Styling**: Tailwind CSS 4
+- **Barcode**: @zxing/browser
+- **UI Components**: React Modal
+- **Node.js**: 22.x (Volta管理)
+- **Package Manager**: pnpm 10.x
 
-開発に着手する前に、以下の設計ドキュメントを確認してください。これらはプロジェクトの「正」となる情報源です。
+### Backend
 
-- [**01_Functional_Requirements.md**](./public/docs/01_Functional_Requirements.md)
-  - このアプリケーションが「何を」実現するのかを定義した機能要件一覧です。
+- **Framework**: FastAPI (Python 3.12)
+- **ORM**: SQLAlchemy
+- **Validation**: Pydantic
+- **Migration**: Alembic
+- **Database Driver**: PyMySQL (MySQL), SQLite3 (開発)
 
-- [**02_API_Specification.md**](./public/docs/02_API_Specification.md)
-  - フロントエンドとバックエンド間の通信規約（契約）を定義したAPI仕様書です。
+### Database
 
-- [**03_Database_Schema.md**](./public/docs/03_Database_Schema.md)
-  - データの永続化方法を定義したデータベース設計書です。
+- **Production**: Azure Database for MySQL (SSL接続)
+- **Development**: SQLite
+
+### Deployment
+
+- フロント: Azure App Service (Node.js)。環境変数 NEXT_PUBLIC_API_BASE_URL をバックエンドの公開URLに設定
+- バックエンド: Azure App Service (Python)。DB接続文字列とSSL関連の環境変数を設定し、CORSでフロントのオリジンを許可
+- マイグレーション: デプロイ時に Alembic `upgrade head` を実行
+- **CI/CD**: GitHub Actions
+
+## プロジェクト構造
+
+```text
+LV3/
+├── frontend/          # Next.jsフロントエンド
+│   ├── src/
+│   │   ├── app/          # App Routerページ
+│   │   ├── components/   # Reactコンポーネント
+│   │   └── types/        # TypeScript型定義
+│   ├── public/           # 静的ファイル
+│   └── package.json
+├── backend/           # FastAPIバックエンド
+│   ├── app.py            # メインアプリケーション
+│   ├── database.py       # モデル定義・DB設定
+│   ├── create_db.py      # DB初期化スクリプト
+│   ├── migrations/       # Alembicマイグレーション
+│   └── pyproject.toml
+└── public/
+    └── docs/             # 設計ドキュメント
+```
+
+## API エンドポイント
+
+### GET `/api/v1/products/{product_id}`
+
+商品情報を取得します。商品マスタ、次にローカル拡張マスタの順に検索します（ローカル拡張は店舗コンテキスト store_id に基づき検索。store_id の受け渡し方法はAPI仕様書を参照）。
+
+### POST `/api/v1/purchases`
+
+購入処理を実行します。商品リストを受け取り税込金額を計算し、取引を確定します。DBには税抜合計と明細を保存し、レスポンスで税込合計や税額を返却します。
+
+## データベーススキーマ
+
+### products（商品マスタ）
+
+- `product_id` (PK): JANコード
+- `product_name`: 商品名
+- `price`: 税抜価格
+- `created_at`, `updated_at`: タイムスタンプ
+
+### local_products（ローカル拡張マスタ）
+
+- `product_id` (PK): JANコード
+- `product_name`: 商品名
+- `price`: 税抜価格
+- `store_id`: 店舗ID
+- `created_at`, `updated_at`: タイムスタンプ
+
+### transactions（取引ヘッダ）
+
+- `id` (PK): 自動採番ID
+- `transaction_code`: 表示用トランザクションID（TRN-YYYYMMDD-####）
+- `total_price`: 合計金額（税抜）
+- `created_at`, `updated_at`: タイムスタンプ
+
+### transaction_details（取引明細）
+
+- `id` (PK): 自動採番ID
+- `transaction_id` (FK): 取引ヘッダID
+- `product_id`: 商品コード
+- `product_name`: 商品名
+- `unit_price`: 単価
+- `quantity`: 数量
 
 ## 開発環境のセットアップ
 
-### Backend (`/backend`)
+### Backend
 
-1. `cd backend`
-2. `pyenv local 3.12` でPythonバージョンを設定
-3. `uv venv` で仮想環境を作成
-4. `source .venv/bin/activate` で有効化
-5. `uv sync` で依存関係をインストール
-6. `cp .env.example .env` で環境変数ファイルを作成し、`DATABASE_URL`を設定
-7. `python create_db_local.py --refresh` でローカルDBを初期化
-8. `uvicorn app:app --reload` で開発サーバーを起動
+1. ディレクトリ移動とPython環境準備
 
-### Frontend (`/frontend`)
+    ```bash
+    cd backend
+    pyenv local 3.12
+    uv venv
+    source .venv/bin/activate  # Windowsの場合: .venv\Scripts\activate
+    ```
 
-1. `cd frontend`
-2. `volta pin node@22` でツールバージョンを設定
-3. `pnpm install` で依存関係をインストール
-4. `pnpm dev` で開発サーバーを起動
-5. `pnpm build` で本番ビルドを生成
+2. 依存関係のインストール
+
+    ```bash
+    uv sync
+    ```
+
+3. 環境変数の設定
+
+    ```bash
+    cp .env.example .env
+    # .envファイルを編集してDB_TYPE=sqliteを設定（開発時）
+    ```
+
+4. データベースの初期化
+
+    ```bash
+    python create_db.py --refresh
+    ```
+
+    本番運用では Alembic マイグレーションを適用してください:
+
+    ```bash
+    alembic upgrade head
+    ```
+
+5. 開発サーバーの起動
+
+    ```bash
+    uvicorn app:app --reload
+    # http://localhost:8000 で起動
+    ```
+
+    CORSを有効化してフロントエンドのオリジンを許可してください（詳細は設定ファイル/.env参照）。
+
+### Frontend
+
+1. ディレクトリ移動とNode.js環境準備
+
+    ```bash
+    cd frontend
+    volta pin node@22
+    ```
+
+2. 依存関係のインストール
+
+    ```bash
+    pnpm install
+    ```
+
+    環境変数の設定（APIエンドポイントの指定）
+
+    ```bash
+    # frontend/.env.local
+    NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+    ```
+
+3. 開発サーバーの起動
+
+    ```bash
+    pnpm dev
+    # http://localhost:3000 で起動
+    ```
+
+4. 本番ビルド
+
+    ```bash
+    pnpm build
+    pnpm start
+    ```
+
+## プロジェクトドキュメント
+
+詳細な設計ドキュメントは`./public/docs/`に格納されています。
+
+- [**01_Functional_Requirements.md**](./public/docs/01_Functional_Requirements.md) - 機能要件一覧
+- [**02_API_Specification.md**](./public/docs/02_API_Specification.md) - API仕様書
+- [**03_Database_Schema.md**](./public/docs/03_Database_Schema.md) - データベース設計書
 
 ---

@@ -4,6 +4,22 @@ APIのベースURL: `/api/v1`
 
 ---
 
+## 共通仕様（追加）
+
+- 通貨・金額
+  - すべての金額は日本円（JPY）、整数（円単位）で扱う。
+  - 商品の`price`は税抜き単価（円, int）。
+- 税計算
+  - `tax_rate`は少数（例: 0.10）。
+  - 税額は取引合計（`total_price_without_tax`）に対して適用し、端数処理は四捨五入。
+  - `total_price_with_tax = total_price_without_tax + round(total_price_without_tax * tax_rate)`
+- 文字コード/タイムゾーン
+  - UTF-8、Asia/Tokyo。
+- 冪等性（推奨）
+  - `POST /purchases`は任意ヘッダ`Idempotency-Key`を受け付け、同一キーに対しては同一結果を返す。
+
+---
+
 ## 1. 商品 (Products)
 
 ### 1.1. 商品情報の取得
@@ -22,8 +38,7 @@ APIのベースURL: `/api/v1`
 
 #### レスポンス (Success: 200 OK)
 
-- **Content-Type:** `application/json`
-- **Body:**
+- 備考: `price`は税抜き単価（円, int）。
 
 ```json
 {
@@ -61,8 +76,11 @@ APIのベースURL: `/api/v1`
 
 #### リクエストボディ
 
-- **Content-Type:** `application/json`
-- **Body:** 購入リストの配列
+- バリデーション（追加）
+  - `items`: 必須、1〜100件まで。
+  - `product_id`: 必須、非空、最大64文字（英数字・ハイフン・アンダースコア推奨）。
+  - `quantity`: 必須、整数、1〜9999。
+  - 同一`product_id`が複数ある場合はサーバー側で数量を合算する。
 
 ```json
 {
@@ -86,8 +104,7 @@ APIのベースURL: `/api/v1`
 
 #### レスポンス (Success: 200 OK)
 
-- **Content-Type:** `application/json`
-- **Body:**
+- 備考: `items_count`は「購入リストの行数（異なるproduct_idの数）」を表す。
 
 ```json
 {
@@ -98,6 +115,8 @@ APIのベースURL: `/api/v1`
   "items_count": 2
 }
 ```
+
+- メモ: 将来的に取引リソースを公開する場合、`201 Created`と`Location: /purchases/{transaction_id}`の返却を検討。
 
 #### レスポンス (Error: 400 Bad Request)
 
