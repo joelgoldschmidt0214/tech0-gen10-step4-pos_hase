@@ -229,7 +229,7 @@ export default function PosPage() {
   const closeModal = () => {
     setModalIsOpen(false); // モーダルを閉じる
     showToast("取引が成立しました", "success"); // トーストメッセージを表示
-    setPurchaseList([]); // 購入リストをリセット
+    dispatchPurchaseList({ type: 'RESET' }); // 購入リストをリセット
     setLastProduct(null);
     setTotalPrice(0); // 合計金額をリセット
   };

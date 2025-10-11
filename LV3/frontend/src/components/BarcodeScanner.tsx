@@ -22,7 +22,6 @@ export default function BarcodeScanner({
 
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
   const lastScannedTimeRef = useRef<number>(0); // 最後にスキャンした時刻
   
@@ -207,7 +206,11 @@ export default function BarcodeScanner({
           // TypedArray (Uint8Array, Int8Array等) の場合
           const uint8Array = rawData instanceof Uint8Array 
             ? rawData 
-            : new Uint8Array(rawData.buffer, rawData.byteOffset, rawData.byteLength);
+            : new Uint8Array(
+                (rawData as { buffer: ArrayBuffer; byteOffset: number; byteLength: number }).buffer,
+                (rawData as { buffer: ArrayBuffer; byteOffset: number; byteLength: number }).byteOffset,
+                (rawData as { buffer: ArrayBuffer; byteOffset: number; byteLength: number }).byteLength
+              );
           const decoder = new TextDecoder('utf-8');
           scannedCode = decoder.decode(uint8Array).trim();
         } else if (Array.isArray(rawData)) {
@@ -239,7 +242,6 @@ export default function BarcodeScanner({
             if (timeSinceLastScan >= SCAN_INTERVAL) {
               console.log('[BarcodeScanner] Scan approved:', scannedCode, 'interval:', timeSinceLastScan);
               lastScannedTimeRef.current = now;
-              setLastScanned(scannedCode);
               setError(null);
               onScan?.(scannedCode);
             } else {
@@ -318,7 +320,6 @@ export default function BarcodeScanner({
 
     setIsScanning(false);
     setError(null);
-    setLastScanned(null);
     lastScannedTimeRef.current = 0; // リセット
   };
 
