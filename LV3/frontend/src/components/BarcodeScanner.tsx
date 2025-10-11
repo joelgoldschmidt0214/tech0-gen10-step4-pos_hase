@@ -69,6 +69,7 @@ export default function BarcodeScanner({
       (canvasRef.current = document.createElement("canvas"));
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) {
+      console.error("Canvas context is null");
       animationFrameRef.current = requestAnimationFrame(scanLoop);
       return;
     }
@@ -99,11 +100,14 @@ export default function BarcodeScanner({
       ) as HTMLCanvasElement;
       if (debugCanvas) {
         const debugCtx = debugCanvas.getContext("2d");
-        if (debugCtx) {
-          debugCanvas.width = roiWidth;
-          debugCanvas.height = roiHeight;
-          debugCtx.putImageData(imageData, 0, 0);
+        if (!debugCtx) {
+          console.error("Debug canvas context is null");
+          animationFrameRef.current = requestAnimationFrame(scanLoop);
+          return;
         }
+        debugCanvas.width = roiWidth;
+        debugCanvas.height = roiHeight;
+        debugCtx.putImageData(imageData, 0, 0);
       }
       // --- デバッグ終了 ---
 
@@ -203,6 +207,41 @@ export default function BarcodeScanner({
     setIsScanning(false);
     setError(null);
     setLastScanned(null);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    await img.decode();
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Canvas context is null");
+      return;
+    }
+
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    try {
+      const results = await scanImageData(imageData);
+      if (results.length > 0) {
+        console.log("静的画像からのスキャン成功:", results[0].data);
+        alert("スキャン成功！: " + results[0].data);
+      } else {
+        console.log("静的画像からのスキャン失敗: バーコードが見つかりません。");
+        alert("スキャン失敗");
+      }
+    } catch (error) {
+      console.error("静的画像スキャンエラー:", error);
+    }
   };
 
   useEffect(() => {
@@ -305,6 +344,10 @@ export default function BarcodeScanner({
           ></canvas>
         </div>
       )}
+
+      <hr />
+      <h3>静的画像テスト</h3>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
     </div>
   );
 }
