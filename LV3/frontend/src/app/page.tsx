@@ -1,7 +1,13 @@
 // LV3/frontend/src/app/page.tsx
 "use client"; // ★ Stateを使うため、クライアントコンポーネント宣言を追加
 
-import React, { useState, useEffect, useCallback, useRef, useReducer } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useReducer,
+} from "react";
 import { Header } from "@/components/Header";
 import { PurchaseList, PurchaseItem } from "@/components/PurchaseList";
 import Modal from "react-modal";
@@ -18,30 +24,35 @@ interface ToastMessage {
 
 // PurchaseListのアクション型
 type PurchaseListAction =
-  | { type: 'ADD_OR_INCREMENT'; product: PurchaseItem }
-  | { type: 'RESET' }
-  | { type: 'UPDATE_QUANTITY'; productId: string; quantity: number };
+  | { type: "ADD_OR_INCREMENT"; product: PurchaseItem }
+  | { type: "RESET" }
+  | { type: "UPDATE_QUANTITY"; productId: string; quantity: number };
 
 // PurchaseListのReducer
-function purchaseListReducer(state: PurchaseItem[], action: PurchaseListAction): PurchaseItem[] {
+function purchaseListReducer(
+  state: PurchaseItem[],
+  action: PurchaseListAction
+): PurchaseItem[] {
   switch (action.type) {
-    case 'ADD_OR_INCREMENT': {
-      const existingIndex = state.findIndex(item => item.product_id === action.product.product_id);
+    case "ADD_OR_INCREMENT": {
+      const existingIndex = state.findIndex(
+        (item) => item.product_id === action.product.product_id
+      );
       if (existingIndex > -1) {
         const newState = [...state];
         newState[existingIndex] = {
           ...newState[existingIndex],
-          quantity: newState[existingIndex].quantity + 1
+          quantity: newState[existingIndex].quantity + 1,
         };
         return newState;
       } else {
         return [...state, { ...action.product, quantity: 1 }];
       }
     }
-    case 'RESET':
+    case "RESET":
       return [];
-    case 'UPDATE_QUANTITY': {
-      return state.map(item =>
+    case "UPDATE_QUANTITY": {
+      return state.map((item) =>
         item.product_id === action.productId
           ? { ...item, quantity: action.quantity }
           : item
@@ -54,7 +65,10 @@ function purchaseListReducer(state: PurchaseItem[], action: PurchaseListAction):
 
 export default function PosPage() {
   // アプリケーションの状態を管理する
-  const [purchaseList, dispatchPurchaseList] = useReducer(purchaseListReducer, []);
+  const [purchaseList, dispatchPurchaseList] = useReducer(
+    purchaseListReducer,
+    []
+  );
   const [totalPrice, setTotalPrice] = useState(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [modalIsOpen, setModalIsOpen] = useState(false); // モーダルの状態管理
@@ -65,7 +79,7 @@ export default function PosPage() {
   // 数量変更モーダルの状態
   const [quantityModalOpen, setQuantityModalOpen] = useState(false);
   const [quantityInput, setQuantityInput] = useState(1);
-  
+
   // handleScanが重複実行されるのを防ぐ
   const isProcessingRef = useRef(false);
   const lastProcessedCodeRef = useRef<string | null>(null);
@@ -103,17 +117,18 @@ export default function PosPage() {
   useEffect(() => {
     if (pendingProductRef.current) {
       const { code, name } = pendingProductRef.current;
-      const updatedItem = purchaseList.find(item => item.product_id === code);
+      const updatedItem = purchaseList.find((item) => item.product_id === code);
       if (updatedItem) {
-        console.log('[useEffect] Updating lastProduct:', updatedItem);
+        console.log("[useEffect] Updating lastProduct:", updatedItem);
         setLastProduct(updatedItem);
         setQuantityInput(updatedItem.quantity);
-        
-        const message = updatedItem.quantity > 1
-          ? `${name} の数量を追加しました (${updatedItem.quantity}個)`
-          : `${name} をリストに追加しました (1個)`;
+
+        const message =
+          updatedItem.quantity > 1
+            ? `${name} の数量を追加しました (${updatedItem.quantity}個)`
+            : `${name} をリストに追加しました (1個)`;
         showToast(message, "success");
-        
+
         pendingProductRef.current = null;
       }
     }
@@ -122,25 +137,27 @@ export default function PosPage() {
   // 商品追加（スキャン or 手動入力）
   const handleScan = useCallback(async (code: string) => {
     const now = Date.now();
-    
+
     // 同じコードを200ms以内に処理しない（重複防止）
-    if (lastProcessedCodeRef.current === code && 
-        now - lastProcessedTimeRef.current < 200) {
-      console.log('[handleScan] Duplicate request blocked:', code);
+    if (
+      lastProcessedCodeRef.current === code &&
+      now - lastProcessedTimeRef.current < 200
+    ) {
+      console.log("[handleScan] Duplicate request blocked:", code);
       return;
     }
-    
+
     // 重複実行を防ぐ
     if (isProcessingRef.current) {
-      console.log('[handleScan] Already processing, skipping...');
+      console.log("[handleScan] Already processing, skipping...");
       return;
     }
-    
+
     isProcessingRef.current = true;
     lastProcessedCodeRef.current = code;
     lastProcessedTimeRef.current = now;
     console.log(`商品検索: ${code}`); // デバッグ用ログ
-    
+
     try {
       // バックエンドのAPIを呼び出す (JANコードをproduct_idとして使用)
       const response = await fetch(`${API_BASE_URL}/api/v1/products/${code}`);
@@ -155,16 +172,16 @@ export default function PosPage() {
 
       // 成功した場合、レスポンスのJSONを商品データに変換
       const productData = await response.json();
-      console.log('[handleScan] Product data:', productData);
+      console.log("[handleScan] Product data:", productData);
 
       // 保留中の商品情報を保存
       pendingProductRef.current = {
         code: productData.product_id,
-        name: productData.product_name
+        name: productData.product_name,
       };
 
       // Reducerを使って状態更新（useEffectで最新の状態が反映される）
-      dispatchPurchaseList({ type: 'ADD_OR_INCREMENT', product: productData });
+      dispatchPurchaseList({ type: "ADD_OR_INCREMENT", product: productData });
     } catch (error) {
       console.error("APIの呼び出しに失敗しました:", error);
       showToast("サーバーとの通信に失敗しました", "error");
@@ -178,7 +195,7 @@ export default function PosPage() {
 
   // リスト削除（全リセット）
   const handleRemoveAll = () => {
-    dispatchPurchaseList({ type: 'RESET' });
+    dispatchPurchaseList({ type: "RESET" });
     setLastProduct(null);
     setTotalPrice(0);
   };
@@ -195,9 +212,9 @@ export default function PosPage() {
   const handleQuantityConfirm = () => {
     if (!lastProduct) return;
     dispatchPurchaseList({
-      type: 'UPDATE_QUANTITY',
+      type: "UPDATE_QUANTITY",
       productId: lastProduct.product_id,
-      quantity: quantityInput
+      quantity: quantityInput,
     });
     setLastProduct({ ...lastProduct, quantity: quantityInput });
     setQuantityModalOpen(false);
@@ -229,7 +246,7 @@ export default function PosPage() {
   const closeModal = () => {
     setModalIsOpen(false); // モーダルを閉じる
     showToast("取引が成立しました", "success"); // トーストメッセージを表示
-    dispatchPurchaseList({ type: 'RESET' }); // 購入リストをリセット
+    dispatchPurchaseList({ type: "RESET" }); // 購入リストをリセット
     setLastProduct(null);
     setTotalPrice(0); // 合計金額をリセット
   };
@@ -246,7 +263,7 @@ export default function PosPage() {
   const totalPriceWithTax = totalPrice;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 font-sans">
+    <div className="flex flex-col h-[100dvh] bg-gray-100 font-sans">
       <Header
         onScan={handleScan}
         onMessage={showToast}
