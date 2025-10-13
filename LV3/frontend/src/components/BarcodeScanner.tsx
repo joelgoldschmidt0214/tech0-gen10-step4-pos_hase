@@ -110,6 +110,61 @@ export default function BarcodeScanner({
     return new ImageData(sharpened, width, height);
   };
 
+  const processScanResults = (
+    results: Array<{ data: string | Uint8Array }>,
+    isStaticUpload = false // デフォルトはfalse（リアルタイムスキャン）
+  ) => {
+    // 結果が存在しない場合はここで処理を終了
+    if (!results || results.length === 0) {
+      if (isStaticUpload && process.env.NODE_ENV === "development") {
+        alert("スキャン失敗: バーコードが見つかりませんでした。");
+      }
+      return; // ★ returnを追加
+    }
+
+    let scannedCode: string;
+    const rawData = results[0].data;
+
+    // 型定義に合わせてロジックをシンプル化
+    if (typeof rawData === "string") {
+      scannedCode = rawData.trim();
+    } else {
+      // stringでなければUint8Arrayなので、直接デコードする
+      scannedCode = new TextDecoder("utf-8").decode(rawData).trim();
+    }
+    // --- デコード処理ここまで ---
+
+    if (scannedCode) {
+      // JANコードの形式・チェックディジット検証（エラー時はトーストが表示される）
+      if (!isValidJAN(scannedCode)) {
+        const errorMsg = `対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。`;
+        setError(errorMsg);
+        onError?.(errorMsg);
+        return; // エラーなのでここで処理を中断
+      } else if (!validateJANCheckDigit(scannedCode)) {
+        const errorMsg = "JANコードのチェックディジットが正しくありません。";
+        setError(errorMsg);
+        onError?.(errorMsg);
+        return; // エラーなのでここで処理を中断
+      }
+
+      // 検証を通過した後の処理
+      const now = Date.now();
+      const timeSinceLastScan = now - lastScannedTimeRef.current;
+
+      if (timeSinceLastScan >= SCAN_INTERVAL) {
+        lastScannedTimeRef.current = now;
+        setError(null);
+        onScan?.(scannedCode); // 成功トーストが表示される
+
+        // 静的アップロードの場合のみアラートを出す
+        if (isStaticUpload && process.env.NODE_ENV === "development") {
+          alert("スキャン成功！: " + scannedCode);
+        }
+      }
+    }
+  };
+
   // zbar でのフレームスキャンループ
   const scanLoop = async () => {
     if (
@@ -181,107 +236,13 @@ export default function BarcodeScanner({
       // 画像前処理
       imageData = preprocessImage(imageData);
 
-      // --- デバッグ用 ---
-      const debugCanvas = document.getElementById(
-        "debugCanvas"
-      ) as HTMLCanvasElement;
-      if (debugCanvas) {
-        const debugCtx = debugCanvas.getContext("2d");
-        if (debugCtx) {
-          debugCanvas.width = roiWidth;
-          debugCanvas.height = roiHeight;
-          debugCtx.putImageData(imageData, 0, 0);
-        }
-      }
-      // --- デバッグ終了 ---
-
+      // zbarでスキャン
       const results = (await scanImageData(imageData)) as Array<{
         data: string | Uint8Array;
       }>;
 
-      if (results && results.length > 0) {
-        // dataが文字列かTypedArrayかチェック
-        let scannedCode: string;
-        const rawData = results[0].data;
-
-        if (typeof rawData === "string") {
-          scannedCode = rawData.trim();
-        } else if (ArrayBuffer.isView(rawData)) {
-          // TypedArray (Uint8Array, Int8Array等) の場合
-          const uint8Array =
-            rawData instanceof Uint8Array
-              ? rawData
-              : new Uint8Array(
-                  (
-                    rawData as {
-                      buffer: ArrayBuffer;
-                      byteOffset: number;
-                      byteLength: number;
-                    }
-                  ).buffer,
-                  (
-                    rawData as {
-                      buffer: ArrayBuffer;
-                      byteOffset: number;
-                      byteLength: number;
-                    }
-                  ).byteOffset,
-                  (
-                    rawData as {
-                      buffer: ArrayBuffer;
-                      byteOffset: number;
-                      byteLength: number;
-                    }
-                  ).byteLength
-                );
-          const decoder = new TextDecoder("utf-8");
-          scannedCode = decoder.decode(uint8Array).trim();
-        } else if (Array.isArray(rawData)) {
-          // 通常の配列の場合
-          const uint8Array = new Uint8Array(rawData);
-          const decoder = new TextDecoder("utf-8");
-          scannedCode = decoder.decode(uint8Array).trim();
-        } else {
-          // その他の型は文字列化を試みる
-          scannedCode = String(rawData || "").trim();
-        }
-
-        if (scannedCode) {
-          if (!isValidJAN(scannedCode)) {
-            const errorMsg = `対応していないバーコード形式です。JANコード（8桁または13桁）をスキャンしてください。`;
-            setError(errorMsg);
-            onError?.(errorMsg);
-          } else if (!validateJANCheckDigit(scannedCode)) {
-            const errorMsg =
-              "JANコードのチェックディジットが正しくありません。";
-            setError(errorMsg);
-            onError?.(errorMsg);
-          } else {
-            // 連続読み取り防止: インターバルベースで制御
-            const now = Date.now();
-            const timeSinceLastScan = now - lastScannedTimeRef.current;
-
-            if (timeSinceLastScan >= SCAN_INTERVAL) {
-              console.log(
-                "[BarcodeScanner] Scan approved:",
-                scannedCode,
-                "interval:",
-                timeSinceLastScan
-              );
-              lastScannedTimeRef.current = now;
-              setError(null);
-              onScan?.(scannedCode);
-            } else {
-              console.log(
-                "[BarcodeScanner] Scan blocked by interval:",
-                scannedCode,
-                "remaining:",
-                SCAN_INTERVAL - timeSinceLastScan
-              );
-            }
-          }
-        }
-      }
+      // スキャン結果の処理
+      processScanResults(results);
     } catch (e) {
       console.error("zbar scanning error:", e);
     } finally {
@@ -378,15 +339,10 @@ export default function BarcodeScanner({
 
     try {
       const results = await scanImageData(imageData);
-      if (results.length > 0) {
-        console.log("静的画像からのスキャン成功:", results[0].data);
-        alert("スキャン成功！: " + results[0].data);
-      } else {
-        console.log("静的画像からのスキャン失敗: バーコードが見つかりません。");
-        alert("スキャン失敗");
-      }
+      processScanResults(results, true); // 静的アップロードとして処理
     } catch (error) {
       console.error("静的画像スキャンエラー:", error);
+      alert("スキャン中にエラーが発生しました。");
     }
   };
 
@@ -476,20 +432,6 @@ export default function BarcodeScanner({
             JANコード（8桁または13桁）のバーコードをカメラに向けてスキャンしてください。
           </p>
           <p>文具などの商品バーコードに対応しています。</p>
-        </div>
-      )}
-
-      {/* デバッグ用にスキャン対象領域を表示するcanvas */}
-      {/* 開発環境（pnpm dev）のときだけ、このブロックが表示される */}
-      {!compact && process.env.NODE_ENV === "development" && (
-        <div>
-          <p className="text-sm font-bold mt-4">
-            デバッグビュー (スキャン対象領域)
-          </p>
-          <canvas
-            id="debugCanvas"
-            className="border-2 border-dashed border-blue-500"
-          ></canvas>
         </div>
       )}
 
