@@ -134,3 +134,43 @@ def create_purchase(payload: PurchaseRequest, db: Session = Depends(get_db)):  #
     items_count=len(details),
     transaction_code=transaction.transaction_code,
   )
+
+
+@app.get("/api/v1/products-with-local")
+def get_products_with_local(db: Session = Depends(get_db)):  # noqa: B008, FAST002
+  """
+  商品マスタとローカル拡張マスタを結合して全商品を取得するAPI。
+  """
+  try:
+    # 商品マスタから全商品を取得
+    products = db.query(database.Product).all()
+
+    # ローカル拡張マスタから全商品を取得
+    local_products = db.query(database.LocalProduct).all()
+
+    # 結果リストを作成（通常商品 + ローカル商品）
+    result = [
+      {
+        "PRD_ID": p.product_id,
+        "PRD_NAME": p.product_name,
+        "PRD_PRICE": p.price,
+        "LOCAL_PRD_NAME": None,
+        "DISPLAY_ORDER": None,
+        "IS_LOCAL": False,
+      }
+      for p in products
+    ] + [
+      {
+        "PRD_ID": lp.product_id,
+        "PRD_NAME": lp.product_name,
+        "PRD_PRICE": lp.price,
+        "LOCAL_PRD_NAME": lp.product_name,
+        "DISPLAY_ORDER": None,
+        "IS_LOCAL": True,
+      }
+      for lp in local_products
+    ]
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e)) from e
+  else:
+    return {"products": result}
