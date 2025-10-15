@@ -1,7 +1,10 @@
-// middleware.ts
+// src/middleware.ts
 import { NextResponse, NextRequest } from "next/server";
 
-const ALLOWED_IPS = (process.env.ALLOWED_IPS ?? "").split(",");
+// 環境変数を正規化（空白除去）
+const ALLOWED_IPS = (process.env.ALLOWED_IPS ?? "")
+  .split(",")
+  .map((ip) => ip.trim());
 
 export function middleware(req: NextRequest) {
   let ip =
@@ -14,9 +17,13 @@ export function middleware(req: NextRequest) {
     ip = "127.0.0.1";
   }
 
+  // Azure などでは "182.169.237.74:52835" のようにポート付きで来るので除去
+  if (ip.includes(":")) {
+    ip = ip.split(":")[0];
+  }
+
   if (req.nextUrl.pathname.startsWith("/admin")) {
     if (!ALLOWED_IPS.includes(ip)) {
-      // HTML を返して画面に表示
       return new NextResponse(
         `
           <html>
@@ -24,6 +31,7 @@ export function middleware(req: NextRequest) {
             <body style="font-family: sans-serif; padding: 2rem;">
               <h1>Access Denied</h1>
               <p>Your IP: <strong>${ip || "unknown"}</strong></p>
+              <p>Allowed: ${ALLOWED_IPS.join(", ")}</p>
             </body>
           </html>
         `,
