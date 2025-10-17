@@ -158,10 +158,12 @@ LV3/
 
 ### Frontend
 
+このリポジトリは pnpm ワークスペース（`pnpm-workspace.yaml`）で管理しています。LVごとにパッケージ化しており、LV3 フロントエンドのパッケージ名は `lv3-frontend` です。特にビルド時は必ずフィルタ指定を行ってください。
+
 1. ディレクトリ移動とNode.js環境準備
 
     ```bash
-    cd frontend
+    cd LV3/frontend
     volta pin node@22
     ```
 
@@ -174,13 +176,14 @@ LV3/
     環境変数の設定（APIエンドポイントの指定）
 
     ```bash
-    # frontend/.env.local
+    # LV3/frontend/.env.local
     NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
     ```
 
 3. 開発サーバーの起動
 
     ```bash
+    cd LV3/frontend
     pnpm dev
     # http://localhost:3000 で起動
     ```
@@ -188,8 +191,9 @@ LV3/
 4. 本番ビルド
 
     ```bash
-    pnpm build
-    pnpm start
+    # ビルドは必ずフィルタで対象パッケージを指定
+    pnpm --filter lv3-frontend build
+    pnpm --filter lv3-frontend start
     ```
 
 ## プロジェクトドキュメント
@@ -199,5 +203,6 @@ LV3/
 - [**01_Functional_Requirements.md**](./public/docs/01_Functional_Requirements.md) - 機能要件一覧
 - [**02_API_Specification.md**](./public/docs/02_API_Specification.md) - API仕様書
 - [**03_Database_Schema.md**](./public/docs/03_Database_Schema.md) - データベース設計書
+- [**04_Customer_Value_Proposition.md**](./public/docs/04_Customer_Value_Proposition.md) - 顧客価値提案
 
 ---
