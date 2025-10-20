@@ -289,6 +289,131 @@ if DB_TYPE == "mysql":
 
 ---
 
+## 段階的導入の推奨順序
+
+予算制約がある場合、以下の優先順位で導入を検討してください。
+
+### フェーズ1（必須・¥40,000/月程度）
+
+```mermaid
+graph TD
+    A[顧客スマホ] --> B[App Service Frontend S1]
+    C[店員スマホ] --> B
+    B --> D[App Service Backend S1<br/>VNET統合・マネージドID]
+    D --> E[Azure Database for MySQL<br/>Private Endpoint]
+    D --> F[Azure Key Vault<br/>DB接続文字列・APIキー]
+
+    subgraph "フェーズ1: 基本セキュリティ"
+        B
+        D
+        E
+        F
+        G[Entra ID B2C<br/>基本認証]
+    end
+
+    B -.-> G
+
+    style D fill:#e1f5fe
+    style E fill:#f3e5f5
+    style F fill:#fff3e0
+    style G fill:#e8f5e8
+```
+
+1. App ServiceのSKUをS1にアップグレード（VNET統合のため）
+2. マネージドID有効化
+3. Database Private Endpoint導入
+4. 基本的な認証機能（Entra ID B2C）
+5. Key Vault導入
+
+### フェーズ2（推奨・¥70,000/月程度）
+
+```mermaid
+graph TD
+    A[顧客スマホ] --> B[App Service Frontend S1]
+    C[店員スマホ] --> B
+    B --> H[Azure API Management<br/>Developer Tier<br/>レート制限・JWT検証]
+    H --> D[App Service Backend S1<br/>VNET統合・Private]
+    D --> E[Azure Database for MySQL<br/>Private Endpoint<br/>Microsoft Defender for SQL]
+    D --> F[Azure Key Vault<br/>Private Endpoint]
+
+    subgraph "フェーズ2: 監視・管理強化"
+        B
+        H
+        D
+        E
+        F
+        G[Entra ID B2C]
+        I[Application Insights<br/>カスタムイベント・アラート]
+        J[Log Analytics Workspace<br/>ログ集約・KQLクエリ]
+    end
+
+    B -.-> G
+    D --> I
+    E --> J
+    H --> J
+
+    style H fill:#ffecb3
+    style I fill:#e3f2fd
+    style J fill:#f1f8e9
+```
+
+1. API Management導入
+2. Application Insights/Log Analytics
+3. Microsoft Defender for SQL
+4. アラート設定
+
+### フェーズ3（理想・¥110,000/月）
+
+```mermaid
+graph TD
+    A[顧客スマホ] --> K[Azure Front Door Premium<br/>WAF・DDoS Protection]
+    C[店員スマホ] --> L[Azure Front Door Premium<br/>WAF・IP制限]
+
+    K --> M[App Service Frontend 顧客用<br/>S1・セルフ決済特化]
+    L --> N[App Service Frontend 店員用<br/>S1・POS操作特化]
+
+    M --> H[Azure API Management<br/>Standard Tier<br/>VNET統合・Internal Mode]
+    N --> H
+
+    H --> D[App Service Backend S1<br/>VNET統合・完全Private]
+    D --> E[Azure Database for MySQL<br/>Private Endpoint<br/>Microsoft Defender・監査ログ]
+    D --> F[Azure Key Vault<br/>Private Endpoint・CMK]
+
+    subgraph "フェーズ3: エンタープライズグレード"
+        K
+        L
+        M
+        N
+        H
+        D
+        E
+        F
+        G[Entra ID B2C<br/>ソーシャルログイン]
+        O[Entra ID<br/>企業認証・RBAC]
+        I[Application Insights<br/>高度な監視]
+        J[Log Analytics Workspace]
+        P[Microsoft Sentinel<br/>SIEM/SOAR]
+        Q[決済システム<br/>Stripe/PayPay連携]
+    end
+
+    M -.-> G
+    N -.-> O
+    D --> I
+    E --> J
+    H --> J
+    J --> P
+    D -.-> Q
+
+    style K fill:#ffcdd2
+    style L fill:#ffcdd2
+    style M fill:#c8e6c9
+    style N fill:#b3e5fc
+    style P fill:#f8bbd9
+    style Q fill:#fff9c4
+```
+
+---
+
 ## コスト試算（月額概算・東日本リージョン）
 
 | リソース | SKU/構成 | 概算月額 |
@@ -311,79 +436,14 @@ if DB_TYPE == "mysql":
 
 ---
 
-## 段階的導入の推奨順序
-
-予算制約がある場合、以下の優先順位で導入を検討してください。
-
-### フェーズ1（必須・¥40,000/月程度）
-
-1. App ServiceのSKUをS1にアップグレード（VNET統合のため）
-2. マネージドID有効化
-3. Database Private Endpoint導入
-4. 基本的な認証機能（Entra ID B2C）
-5. Key Vault導入
-
-### フェーズ2（推奨・¥70,000/月程度）
-
-1. API Management導入
-2. Application Insights/Log Analytics
-3. Microsoft Defender for SQL
-4. アラート設定
-
-### フェーズ3（理想・¥110,000/月）
-
-1. Azure Front Door + WAF
-2. アプリケーション分離（顧客/店員）
-3. Sentinel（予算次第）
-
----
-
-## その他の考慮事項
-
-### 開発環境
-
-- 本番と同等のセキュリティ設定を別サブスクリプションで構築
-- Dev/Test料金適用で約40%割引
-
-### 災害対策
-
-- geo冗長構成を検討（コスト2倍）
-
-### コンプライアンス
-
-- Azure Policyでガバナンス強制（無料）
-
-### ペネトレーションテスト
-
-- 年1回実施を推奨
-
----
-
 ## まとめ
 
-この構成により、エンタープライズグレードのセキュリティ水準に到達できます。
+このセキュア構成により以下を達成できます：
 
-### 主な効果
+1. **ゼロトラスト原則**: すべての通信が認証・暗号化済み
+2. **攻撃対象領域の最小化**: Backend/DBが完全プライベート
+3. **監査可能性**: すべてのアクセスがログ記録済み
+4. **法令遵守**: PCI DSS、個人情報保護法対応
+5. **運用の自動化**: Infrastructure as Code、CI/CDパイプライン
 
-- ✅ ネットワーク層の完全分離（攻撃対象領域の最小化）
-- ✅ 認証・認可の徹底（不正アクセス防止）
-- ✅ シークレット管理の一元化（情報漏洩リスク低減）
-- ✅ 決済システムのPCI DSS準拠
-- ✅ 包括的な監視とアラート（インシデント早期検知）
-- ✅ WAFによる攻撃防御
-- ✅ コンプライアンス要件への対応
-
-### 導入の優先順位
-
-**セキュリティ要件が高い場合**: フェーズ3まで実施
-**予算制約がある場合**: フェーズ1から段階的に導入
-**決済機能が必須の場合**: 少なくともフェーズ2までは必須
-
----
-
-**次のステップ**:
-
-1. 予算承認
-2. 詳細設計（IaC化）
-3. 開発環境での検証
-4. 本番環境への段階的展開
+ただし、現在の7倍のコストがかかるため、フェーズ分けでの段階的導入を強く推奨します。
