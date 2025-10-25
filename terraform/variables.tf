@@ -15,3 +15,9 @@ variable "vnet_name" {
   description = "The name of the virtual network."
   default     = "vnet-secure-pos-app"
 }
+
+variable "mysql_admin_username" {
+  type        = string
+  description = "The administrator username for the MySQL server."
+  default     = "dbadmin_pos"
+}
