@@ -3,3 +3,14 @@ node_modules
 .png
 .jpg
 .jpeg
+
+
+# Terraform local state and temporary files
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform/
+# **/.terraform.lock.hcl
+
+# Terraform crash log
+crash.log
+*.swp
