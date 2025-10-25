@@ -89,7 +89,7 @@ resource "azurerm_mysql_flexible_server" "mysql" {
   location               = data.azurerm_resource_group.rg.location
   administrator_login    = var.mysql_admin_username
   administrator_password = random_password.mysql_password.result
-  sku_name               = "B_Standard_B1ms" # 開発用の最小SKU
+  sku_name               = "B_Standard_B1s" # 開発用の最小SKU
   version                = "8.0.21"
 
   storage {
