@@ -22,7 +22,7 @@ resource "azurerm_subnet" "frontend" {
     name = "appservice-delegation"
     service_delegation {
       name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
     }
   }
 }
@@ -37,7 +37,7 @@ resource "azurerm_subnet" "backend" {
     name = "appservice-delegation"
     service_delegation {
       name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
     }
   }
 }
