@@ -33,3 +33,9 @@ variable "mysql_database_name" {
   description = "The name of the MySQL database to be created."
   default     = "step4-pos_hase" # アプリケーション用のDB名
 }
+
+variable "waf_policy_name" {
+  type        = string
+  description = "The name of the WAF policy."
+  default     = "wafsecureposapp"
+}

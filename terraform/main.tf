@@ -257,6 +257,22 @@ resource "azurerm_linux_web_app" "frontend" {
     application_stack {
       node_version = "22-lts"
     }
+    # site_configにアクセス制限を追加
+    ip_restriction {
+      # Front Doorからのトラフィックを示すService Tag
+      service_tag = "AzureFrontDoor.Backend"
+      action      = "Allow"
+      priority    = 100
+      name        = "Allow FrontDoor"
+    }
+
+    # デフォルトですべてのアクセスを拒否するルール (優先度が一番低い)
+    ip_restriction {
+      ip_address = "0.0.0.0/0"
+      action     = "Deny"
+      priority   = 2147483647
+      name       = "Deny all"
+    }
   }
 
   lifecycle {
@@ -314,10 +330,9 @@ resource "azurerm_app_service_virtual_network_swift_connection" "backend_vnet_in
 # 6. Frontend App ServiceのIDにKey Vault読み取り権限を付与
 resource "azurerm_role_assignment" "frontend_kv_reader" {
   scope                = azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets User" # 読み取り専用の最小権限ロール
+  role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_linux_web_app.frontend.identity[0].principal_id
 
-  # App Serviceが作成されるのを待ってから権限を付与する
   depends_on = [
     azurerm_linux_web_app.frontend
   ]
@@ -333,4 +348,99 @@ resource "azurerm_role_assignment" "backend_kv_reader" {
   depends_on = [
     azurerm_linux_web_app.backend
   ]
+}
+
+# --- Public Endpoint and Security (Front Door) ---
+
+# 1. Front Door Premium Profile (城門の本体)
+resource "azurerm_cdn_frontdoor_profile" "main" {
+  name                = "fdp-${var.resource_group_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  sku_name            = "Premium_AzureFrontDoor"
+}
+
+# 2. Public Endpoint (城門の住所)
+resource "azurerm_cdn_frontdoor_endpoint" "main" {
+  name                     = "fde-${random_string.unique.result}" # Must be globally unique
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main.id
+}
+
+# 3. WAF Policy (衛兵のルールブック)
+resource "azurerm_cdn_frontdoor_firewall_policy" "main" {
+  name                = "${var.waf_policy_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  sku_name            = "Premium_AzureFrontDoor"
+  mode                = "Prevention"
+
+  managed_rule {
+    type    = "Microsoft_DefaultRuleSet"
+    version = "2.1"
+    action  = "Block"
+  }
+}
+
+# 4. Security Policy (衛兵を城門に配置する)
+resource "azurerm_cdn_frontdoor_security_policy" "main" {
+  name                     = "sp-${var.resource_group_name}"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main.id
+
+  security_policies {
+    firewall {
+      cdn_frontdoor_firewall_policy_id = azurerm_cdn_frontdoor_firewall_policy.main.id
+      association {
+        domain {
+          cdn_frontdoor_domain_id = azurerm_cdn_frontdoor_endpoint.main.id
+        }
+        patterns_to_match = ["/*"]
+      }
+    }
+  }
+}
+
+# 5. Origin Group (秘密の通路の行き先グループ)
+resource "azurerm_cdn_frontdoor_origin_group" "main" {
+  name                     = "og-frontend"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main.id
+
+  # ヘルスチェックの設定
+  health_probe {
+    path                = "/"
+    protocol            = "Https"
+    interval_in_seconds = 100
+  }
+
+  load_balancing {
+    sample_size                 = 4
+    successful_samples_required = 3
+    additional_latency_in_milliseconds = 0
+  }
+}
+
+# 6. Origin with Private Link (秘密の通路の接続設定)
+resource "azurerm_cdn_frontdoor_origin" "frontend" {
+  name                          = "origin-app-frontend"
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.main.id
+  enabled                       = true
+
+  host_name                     = azurerm_linux_web_app.frontend.default_hostname
+  http_port                     = 80
+  https_port                    = 443
+  origin_host_header            = azurerm_linux_web_app.frontend.default_hostname
+  certificate_name_check_enabled = true
+}
+
+
+# 7. Routing Rule (城門に来た人を秘密の通路に案内する)
+resource "azurerm_cdn_frontdoor_route" "main" {
+  name                          = "route-to-frontend"
+  cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.main.id
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.main.id
+  cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.frontend.id]
+
+  # サポートするプロトコル
+  supported_protocols = ["Http", "Https"]
+  patterns_to_match   = ["/*"]
+
+  # HTTPリクエストは自動的にHTTPSにリダイレクト
+  https_redirect_enabled = true
 }
