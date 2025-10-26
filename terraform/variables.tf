@@ -7,11 +7,23 @@ variable "resource_group_name" {
 variable "location" {
   type        = string
   description = "The Azure region where resources will be deployed."
-  default     = "japaneast"
+  default     = "westus2"
 }
 
 variable "vnet_name" {
   type        = string
   description = "The name of the virtual network."
   default     = "vnet-secure-pos-app"
+}
+
+variable "mysql_admin_username" {
+  type        = string
+  description = "The administrator username for the MySQL server."
+  default     = "dbadmin_pos"
+}
+
+variable "mysql_database_name" {
+  type        = string
+  description = "The name of the MySQL database to be created."
+  default     = "step4-pos_hase" # アプリケーション用のDB名
 }
