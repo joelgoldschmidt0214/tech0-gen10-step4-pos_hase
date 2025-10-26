@@ -3,16 +3,27 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.85.0"
+      version = "~> 4.50.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0"
+      version = "~> 3.7.0"
     }
   }
 }
 
 provider "azurerm" {
-  skip_provider_registration = true
+  subscription_id = var.subscription_id
+  resource_provider_registrations = "none"
+  resource_providers_to_register = [
+    "Microsoft.Resources",
+    "Microsoft.Authorization",
+    "Microsoft.CostManagement",
+    "Microsoft.ManagedIdentity",
+    "Microsoft.Network",
+    "Microsoft.KeyVault",
+    "Microsoft.DBforMySQL",
+    "Microsoft.Web",
+  ]
   features {}
 }

@@ -130,8 +130,8 @@ resource "azurerm_key_vault" "kv" {
   # パブリックアクセスを無効化
   # public_network_access_enabled = false
 
-  # アクセス制御にRBACを利用
-  enable_rbac_authorization = true
+  # RBAC is managed via Azure role assignments (removed deprecated attribute)
+  # assign roles using azurerm_role_assignment resources instead of enable_rbac_authorization
 
   network_acls {
     # デフォルトですべての通信を拒否
@@ -228,4 +228,109 @@ resource "azurerm_private_endpoint" "keyvault" {
     name                 = "default"
     private_dns_zone_ids = [azurerm_private_dns_zone.keyvault.id]
   }
+}
+
+# --- Application Infrastructure (App Services) ---
+
+# 1. App Service Plan (FrontendとBackendが同居するサーバー)
+resource "azurerm_service_plan" "main" {
+  name                = "asp-${var.resource_group_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  os_type             = "Linux"
+  sku_name            = "B1"
+}
+
+# 2. Frontend App Service (Next.js)
+resource "azurerm_linux_web_app" "frontend" {
+  name                = "app-frontend-${random_string.unique.result}" # グローバルにユニークな名前が必要
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_service_plan.main.location
+  service_plan_id     = azurerm_service_plan.main.id
+
+  # マネージドIDを有効化
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    application_stack {
+      node_version = "22-lts"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # この属性はプロバイダーのバグで永続的な差分を生成するため、無視する
+      virtual_network_subnet_id,
+    ]
+  }
+}
+
+# 3. Backend App Service (FastAPI)
+resource "azurerm_linux_web_app" "backend" {
+  name                = "app-backend-${random_string.unique.result}" # グローバルにユニークな名前が必要
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_service_plan.main.location
+  service_plan_id     = azurerm_service_plan.main.id
+
+  # マネージドIDを有効化
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    application_stack {
+      python_version = "3.12"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # この属性はプロバイダーのバグで永続的な差分を生成するため、無視する
+      virtual_network_subnet_id,
+    ]
+  }
+}
+
+
+# --- VNet Integration ---
+
+# 4. Frontend App ServiceをVNetに接続
+resource "azurerm_app_service_virtual_network_swift_connection" "frontend_vnet_integration" {
+  app_service_id = azurerm_linux_web_app.frontend.id
+  subnet_id      = azurerm_subnet.frontend.id
+}
+
+# 5. Backend App ServiceをVNetに接続
+resource "azurerm_app_service_virtual_network_swift_connection" "backend_vnet_integration" {
+  app_service_id = azurerm_linux_web_app.backend.id
+  subnet_id      = azurerm_subnet.backend.id
+}
+
+
+# --- Managed Identity and Key Vault Access ---
+
+# 6. Frontend App ServiceのIDにKey Vault読み取り権限を付与
+resource "azurerm_role_assignment" "frontend_kv_reader" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets User" # 読み取り専用の最小権限ロール
+  principal_id         = azurerm_linux_web_app.frontend.identity[0].principal_id
+
+  # App Serviceが作成されるのを待ってから権限を付与する
+  depends_on = [
+    azurerm_linux_web_app.frontend
+  ]
+}
+
+# 7. Backend App ServiceのIDにKey Vault読み取り権限を付与
+resource "azurerm_role_assignment" "backend_kv_reader" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_linux_web_app.backend.identity[0].principal_id
+
+  # App Serviceが作成されるのを待ってから権限を付与する
+  depends_on = [
+    azurerm_linux_web_app.backend
+  ]
 }
