@@ -9,6 +9,7 @@ node_modules
 **/terraform.tfstate
 **/terraform.tfstate.backup
 **/.terraform/
+**/*.backup
 # **/.terraform.lock.hcl
 
 # Terraform crash log

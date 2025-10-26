@@ -130,8 +130,8 @@ resource "azurerm_key_vault" "kv" {
   # パブリックアクセスを無効化
   # public_network_access_enabled = false
 
-  # アクセス制御にRBACを利用
-  enable_rbac_authorization = true
+  # RBAC is managed via Azure role assignments (removed deprecated attribute)
+  # assign roles using azurerm_role_assignment resources instead of enable_rbac_authorization
 
   network_acls {
     # デフォルトですべての通信を拒否

@@ -1,3 +1,9 @@
+variable "subscription_id" {
+  type        = string
+  description = "The ID of the subscription."
+  default     = "35764fe2-0998-4a2f-b36a-a9f45312daef"
+}
+
 variable "resource_group_name" {
   type        = string
   description = "The name of the resource group."
