@@ -258,6 +258,13 @@ resource "azurerm_linux_web_app" "frontend" {
       node_version = "22-lts"
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      # この属性はプロバイダーのバグで永続的な差分を生成するため、無視する
+      virtual_network_subnet_id,
+    ]
+  }
 }
 
 # 3. Backend App Service (FastAPI)
@@ -276,6 +283,13 @@ resource "azurerm_linux_web_app" "backend" {
     application_stack {
       python_version = "3.12"
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # この属性はプロバイダーのバグで永続的な差分を生成するため、無視する
+      virtual_network_subnet_id,
+    ]
   }
 }
 
