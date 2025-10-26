@@ -21,3 +21,9 @@ variable "mysql_admin_username" {
   description = "The administrator username for the MySQL server."
   default     = "dbadmin_pos"
 }
+
+variable "mysql_database_name" {
+  type        = string
+  description = "The name of the MySQL database to be created."
+  default     = "step4-pos_hase" # アプリケーション用のDB名
+}
