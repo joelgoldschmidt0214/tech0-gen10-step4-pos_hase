@@ -1,8 +1,8 @@
 node_modules
 
-.png
-.jpg
-.jpeg
+**/*.png
+**/*.jpg
+**/*.jpeg
 
 
 # Terraform local state and temporary files
