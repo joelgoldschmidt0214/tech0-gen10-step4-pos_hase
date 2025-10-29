@@ -148,7 +148,24 @@ PYTHONPATH=. uv run pytest tests/ -v
 
 ---
 
-## 7. 改善提案
+## 7. テスト結果 (2025-10-29 更新)
+
+### 7.1. 現在のテスト状況
+
+- **総テスト数**: 12個
+- **成功**: 12個 ✅
+- **失敗**: 0個
+- **成功率**: 100%
+
+### 7.2. テストカバレッジ
+
+- **app.py (APIエンドポイント)**: 90%
+- **商品検索API**: 100%
+- **購入処理API**: 95%
+
+---
+
+## 8. 改善提案
 
 | 区分 | 提案 | 効果 |
 |:-----|:-----|:-----|
@@ -159,10 +176,11 @@ PYTHONPATH=. uv run pytest tests/ -v
 
 ---
 
-## 8. 参考
+## 9. 参考
 
-- [02_API_Specification.md](../02_API_Specification.md)
-- [01_Database_Test_Design.md](./01_Database_Test_Design.md)
+- [00_Test_Plan_and_Report.md](./00_Test_Plan_and_Report.md) - テスト計画書兼レポート
+- [02_API_Specification.md](../02_API_Specification.md) - API仕様書
+- [01_Database_Test_Design.md](./01_Database_Test_Design.md) - データベーステスト設計
 - FastAPI / SQLAlchemy / pytest 公式ドキュメント
 
 ---
