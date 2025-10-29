@@ -49,7 +49,7 @@ def test_get_product_success(test_engine):
   response = client.get("/api/v1/products/SEARCH001")
   assert response.status_code == 200
   data = response.json()
-  assert data == {"id": 1, "product_id": "SEARCH001", "name": "検索商品", "price": 500}
+  assert data == {"product_id": "SEARCH001", "product_name": "検索商品", "price": 500}
 
 
 def test_get_product_prefers_regular_over_local(test_engine):
@@ -63,7 +63,7 @@ def test_get_product_prefers_regular_over_local(test_engine):
   response = client.get("/api/v1/products/DUP001")
   assert response.status_code == 200
   data = response.json()
-  assert data["name"] == "通常商品"  # 通常商品が優先される
+  assert data["product_name"] == "通常商品"  # 通常商品が優先される
   assert data["price"] == 100
 
 

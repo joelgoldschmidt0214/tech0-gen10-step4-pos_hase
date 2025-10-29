@@ -34,12 +34,12 @@ class TestDatabaseConstraints:
   def test_product_id_unique_constraint(self, test_db_session):
     """商品コードのユニーク制約テスト（詳細版）"""
     # 最初の商品を作成
-    product1 = Product(product_id="UNIQUE001", name="商品1", price=100)
+    product1 = Product(product_id="UNIQUE001", product_name="商品1", price=100)
     test_db_session.add(product1)
     test_db_session.commit()
 
     # 同じ商品コードで別の商品を作成しようとする
-    product2 = Product(product_id="UNIQUE001", name="商品2", price=200)
+    product2 = Product(product_id="UNIQUE001", product_name="商品2", price=200)
     test_db_session.add(product2)
 
     # ユニーク制約違反でIntegrityErrorが発生することを確認
@@ -271,8 +271,8 @@ class TestBusinessLogic:
     # 通常商品が優先されることを確認（価格で区別）
     assert found_regular.price == 100
     assert found_local.price == 150
-    assert found_regular.name == "通常商品"
-    assert found_local.name == "ローカル商品"
+    assert found_regular.product_name == "通常商品"
+    assert found_local.product_name == "ローカル商品"
 
   def test_empty_transaction(self, test_db_session):
     """空の取引（明細がない取引）のテスト"""
