@@ -2,6 +2,86 @@
 
 このドキュメントは、ポップアップストアの店員が使用するPOSアプリケーションの機能要件を定義します。
 
+**最終更新日**: 2025-10-29
+
+---
+
+## 開発環境
+
+### バックエンド
+
+- **言語**: Python 3.12
+- **フレームワーク**: FastAPI
+- **ORM**: SQLAlchemy
+- **マイグレーション**: Alembic
+- **パッケージ管理**: uv
+- **Python環境管理**: pyenv
+- **データベース**: SQLite (開発) / Azure Database for MySQL (本番)
+
+### フロントエンド
+
+- **言語**: TypeScript
+- **フレームワーク**: Next.js 15.5.4 (App Router)
+- **UIライブラリ**: React 19
+- **スタイリング**: Tailwind CSS 4
+- **Node.js管理**: Volta (22.x)
+- **パッケージ管理**: pnpm 10.x
+- **ワークスペース**: pnpm workspace (`pnpm-workspace.yaml`)
+
+### 実装詳細
+
+- **バーコードライブラリ**: @zxing/browser, @undecaf/zbar-wasm
+- **UIコンポーネント**: react-modal
+- **データベースドライバ**: PyMySQL (MySQL), SQLite3 (開発)
+- **バリデーション**: Pydantic
+- **環境変数管理**: python-dotenv
+
+---
+
+## プロジェクト構成
+
+```text
+LV3/
+├── frontend/          # Next.jsフロントエンド
+│   ├── src/
+│   │   ├── app/          # App Routerページ
+│   │   ├── components/   # Reactコンポーネント
+│   │   │   ├── BarcodeScanner.tsx
+│   │   │   ├── BarcodeScannerZxing.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── PurchaseList.tsx
+│   │   │   └── PurchaseListItem.tsx
+│   │   └── types/        # TypeScript型定義
+│   ├── public/           # 静的ファイル
+│   ├── package.json
+│   └── .env.local        # 環境変数
+├── backend/           # FastAPIバックエンド
+│   ├── app.py            # メインアプリケーション
+│   ├── database.py       # モデル定義・DB設定
+│   ├── create_db.py      # DB初期化スクリプト
+│   ├── migrations/       # Alembicマイグレーション
+│   │   └── versions/
+│   │       ├── 0001_initial_schema.py
+│   │       └── 8bfbd45359dd_products_local_products_jan主キー化.py
+│   ├── tests/            # テストコード
+│   │   ├── test_api_products.py
+│   │   ├── test_api_purchases.py
+│   │   ├── test_constraints.py
+│   │   └── test_models.py
+│   ├── pyproject.toml
+│   ├── .env              # 環境変数
+│   ├── .venv/            # Python仮想環境 (uv venv)
+│   └── DigiCertGlobalRootG2.crt.pem  # MySQL SSL証明書
+└── public/
+    └── docs/             # 設計ドキュメント
+        ├── 00_Project_Overview.md
+        ├── 01_Functional_Requirements.md
+        ├── 02_API_Specification.md
+        ├── 03_Database_Schema.md
+        ├── 04_Customer_Value_Proposition.md
+        └── 05_Secure_Azure_Architecture.md
+```
+
 ---
 
 ## 1. 商品スキャンとリスト追加機能
@@ -69,5 +149,15 @@
 - 検索順序: 「通常マスタ（products）」→「ローカル拡張マスタ（local_products）」の順で検索する。
 - 未登録商品: どちらにも存在しない場合はエラー（404）とし、購入リストに追加しない。
 - 価格・名称: レスポンスは `product_id`, `product_name`, `price` を返す（価格は税抜）。
+
+---
+
+## 関連ドキュメント
+
+- [00_Project_Overview.md](./00_Project_Overview.md) - プロジェクト概要と開発環境
+- [02_API_Specification.md](./02_API_Specification.md) - API仕様書
+- [03_Database_Schema.md](./03_Database_Schema.md) - データベース設計書
+- [04_Customer_Value_Proposition.md](./04_Customer_Value_Proposition.md) - 顧客価値提案
+- [05_Secure_Azure_Architecture.md](./05_Secure_Azure_Architecture.md) - セキュアなAzure構成設計
 
 ---

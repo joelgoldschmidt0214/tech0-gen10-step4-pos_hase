@@ -2,9 +2,41 @@
 
 **作成日**: 2025-10-20
 
+**最終更新日**: 2025-10-29
+
 **対象**: LV3 POSアプリケーション
 
 **目的**: セキュリティに振り切ったAzure構成の設計
+
+---
+
+## 現在の実装スタック
+
+### バックエンド
+
+- **言語**: Python 3.12
+- **フレームワーク**: FastAPI
+- **ORM**: SQLAlchemy 2.x
+- **マイグレーション**: Alembic
+- **パッケージ管理**: uv
+- **環境管理**: pyenv
+- **仮想環境**: `.venv` (uv venv)
+
+### フロントエンド
+
+- **言語**: TypeScript
+- **フレームワーク**: Next.js 15.5.4 (App Router)
+- **UIライブラリ**: React 19
+- **スタイリング**: Tailwind CSS 4
+- **Node.js管理**: Volta (22.x)
+- **パッケージ管理**: pnpm 10.x
+- **ワークスペース**: pnpm workspace
+
+### 開発・運用ツール
+
+- **コンテナ化**: Docker + Docker Compose
+- **環境変数管理**: .env (python-dotenv)
+- **バージョン管理**: Git
 
 ---
 
@@ -447,3 +479,15 @@ graph TD
 5. **運用の自動化**: Infrastructure as Code、CI/CDパイプライン
 
 ただし、現在の7倍のコストがかかるため、フェーズ分けでの段階的導入を強く推奨します。
+
+---
+
+## 関連ドキュメント
+
+- [00_Project_Overview.md](./00_Project_Overview.md) - プロジェクト概要と開発環境
+- [01_Functional_Requirements.md](./01_Functional_Requirements.md) - 機能要件
+- [02_API_Specification.md](./02_API_Specification.md) - API仕様
+- [03_Database_Schema.md](./03_Database_Schema.md) - データベース設計
+- [04_Customer_Value_Proposition.md](./04_Customer_Value_Proposition.md) - 顧客価値提案
+
+---

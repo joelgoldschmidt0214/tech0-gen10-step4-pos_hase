@@ -1,7 +1,20 @@
 # POSアプリケーション (LV3) データベース設計書
 
+**最終更新日**: 2025-10-29
+
 このドキュメントは、アプリケーションが使用するデータベースのスキーマを定義します。
 価格はすべて税抜（without tax）で保存します。
+
+---
+
+## 技術スタック
+
+- **ORM**: SQLAlchemy 2.x
+- **マイグレーション**: Alembic
+- **データベースドライバ**:
+  - SQLite3 (開発環境)
+  - PyMySQL (本番環境 - Azure Database for MySQL)
+- **SSL/TLS**: DigiCertGlobalRootG2.crt.pem (MySQL接続用)
 
 ---
 
@@ -115,3 +128,91 @@ erDiagram
   - Index 推奨: `transaction_details(transaction_id)`, `transaction_details(product_id)`, `transactions(created_at)`.
 - 一意性:
   - `local_products` は店舗内での商品コード重複を禁止するため UNIQUE (store_id, product_id)。
+
+---
+
+## マイグレーション管理
+
+このプロジェクトでは **Alembic** を使用してデータベーススキーマの変更を管理します。
+
+### マイグレーションの適用
+
+```bash
+# 最新のマイグレーションを適用
+alembic upgrade head
+
+# 特定のリビジョンまで適用
+alembic upgrade <revision_id>
+```
+
+### マイグレーション履歴の確認
+
+```bash
+# 現在のリビジョンを確認
+alembic current
+
+# マイグレーション履歴を表示
+alembic history
+```
+
+### 新しいマイグレーションの作成
+
+```bash
+# スキーマ変更を自動検出してマイグレーションを生成
+alembic revision --autogenerate -m "変更内容の説明"
+
+# 空のマイグレーションファイルを作成
+alembic revision -m "変更内容の説明"
+```
+
+### 既存のマイグレーション
+
+- `0001_initial_schema.py`: 初期スキーマの作成
+- `8bfbd45359dd_products_local_products_jan主キー化.py`: JANコードを主キーに変更
+
+### 注意事項
+
+- 本番環境へのデプロイ前に必ずマイグレーションをテストすること
+- ダウングレード用のスクリプトも作成すること
+- データベースバックアップを取得してからマイグレーションを実行すること
+
+---
+
+## 開発環境とデータベース
+
+### ローカル開発 (SQLite)
+
+```bash
+# .envの設定
+DB_TYPE="sqlite"
+```
+
+- データベースファイル: `LV3/backend/local.db`
+- 初期化コマンド: `python create_db.py --refresh`
+
+### 本番環境 (Azure Database for MySQL)
+
+```bash
+# .envの設定例
+DB_TYPE="mysql"
+DB_HOST="your-server.mysql.database.azure.com"
+DB_PORT="3306"
+DB_NAME="pos_db"
+DB_USER="adminuser"
+DB_PASSWORD="your-password"
+```
+
+- SSL証明書: `DigiCertGlobalRootG2.crt.pem` (必須)
+- マイグレーション: `alembic upgrade head`
+
+---
+
+## 関連ドキュメント
+
+- [00_Project_Overview.md](./00_Project_Overview.md) - プロジェクト概要と開発環境
+- [01_Functional_Requirements.md](./01_Functional_Requirements.md) - 機能要件
+- [02_API_Specification.md](./02_API_Specification.md) - API仕様
+- [04_Customer_Value_Proposition.md](./04_Customer_Value_Proposition.md) - 顧客価値提案
+- [05_Secure_Azure_Architecture.md](./05_Secure_Azure_Architecture.md) - セキュアなAzure構成設計
+
+---

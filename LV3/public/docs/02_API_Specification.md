@@ -1,6 +1,19 @@
 # POSアプリケーション (LV3) API仕様書
 
+**最終更新日**: 2025-10-29
+
 APIのベースURL: `/api/v1`
+
+---
+
+## 実装技術スタック
+
+- **フレームワーク**: FastAPI (Python 3.12)
+- **ORM**: SQLAlchemy
+- **バリデーション**: Pydantic
+- **データベース**: SQLite (開発) / Azure Database for MySQL (本番)
+- **マイグレーション**: Alembic
+- **環境変数管理**: python-dotenv
 
 ---
 
@@ -152,6 +165,82 @@ APIのベースURL: `/api/v1`
 
 - メモ: 将来的に取引リソースを公開する場合、`201 Created`と`Location: /purchases/{transaction_id}`の返却を検討。
 
+---
+
+## 開発環境のセットアップ
+
+### 前提条件
+
+- **pyenv**: Python 3.12のインストール
+- **uv**: Pythonパッケージマネージャー
+- **git**: ソースコード管理
+
+### セットアップ手順
+
+1. プロジェクトディレクトリに移動
+
+    ```bash
+    cd LV3/backend
+    ```
+
+2. Python環境の設定
+
+    ```bash
+    # Python 3.12を使用
+    pyenv local 3.12
+
+    # 仮想環境の作成
+    uv venv
+
+    # 仮想環境の有効化
+    source .venv/bin/activate  # Linux/macOS
+    # または
+    .venv\Scripts\activate  # Windows
+    ```
+
+3. 依存関係のインストール
+
+    ```bash
+    uv sync
+    ```
+
+4. 環境変数の設定
+
+    ```bash
+    # .env.exampleをコピーして.envを作成
+    cp .env.example .env
+
+    # .envを編集（開発時はDB_TYPE=sqliteを推奨）
+    # DB_TYPE="sqlite"  # ローカル開発用
+    ```
+
+5. データベースの初期化
+
+    ```bash
+    # 開発時: SQLiteで簡易初期化
+    python create_db.py --refresh
+
+    # 本番時: Alembicマイグレーション
+    alembic upgrade head
+    ```
+
+6. 開発サーバーの起動
+
+    ```bash
+    uvicorn app:app --reload
+    ```
+
+    APIは `http://localhost:8000` で起動します。
+
+### APIドキュメントの確認
+
+FastAPIは自動的にAPIドキュメントを生成します:
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+---
+
 #### レスポンス (Error: 400 Bad Request)
 
 リクエストボディの形式が不正な場合や、存在しない商品コードが含まれている場合に返却する。
@@ -172,3 +261,15 @@ APIのベースURL: `/api/v1`
 - **明確なエンドポイント:** `/products/{product_id}`や`/purchases`といった、RESTfulな設計に基づいた分かりやすいURLを定義しています。
 - **リクエストとレスポンスの具体例:** `JSON`の具体例と、各キーの説明をテーブルで示すことで、フロントエンドとバックエンドが実装すべきデータ構造が一目瞭然になります。
 - **成功と失敗のケース:** 正常系（200 OK）だけでなく、異常系（404, 400）のレスポンスも明確に定義しています。これにより、エラーハンドリングの実装が非常にスムーズになります。
+
+---
+
+## 関連ドキュメント
+
+- [00_Project_Overview.md](./00_Project_Overview.md) - プロジェクト概要と開発環境
+- [01_Functional_Requirements.md](./01_Functional_Requirements.md) - 機能要件
+- [03_Database_Schema.md](./03_Database_Schema.md) - データベース設計
+- [04_Customer_Value_Proposition.md](./04_Customer_Value_Proposition.md) - 顧客価値提案
+- [05_Secure_Azure_Architecture.md](./05_Secure_Azure_Architecture.md) - セキュアなAzure構成設計
+
+---
