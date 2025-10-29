@@ -205,17 +205,23 @@ PYTHONPATH=. uv run pytest tests/ --cov=database --cov-report=html
 
 ## 7. テスト結果
 
-### 7.1. 現在のテスト状況 (2025-10-08 更新)
+### 7.1. 現在のテスト状況 (2025-10-29 更新)
 
-- **総テスト数**: 27個
-- **成功**: 27個 ✅
+- **総テスト数**: 35個
+- **成功**: 35個 ✅
 - **失敗**: 0個
+- **成功率**: 100%
 
 外部キー制約は `conftest.py` の `PRAGMA foreign_keys=ON` により全テストで有効化され、`test_transaction_detail_foreign_key` も正常に制約違反を検出できています。
 
 ### 7.2. 追加メモ: カスケード削除
 
 `Transaction` ← `TransactionDetail` 間に `ondelete=CASCADE` + SQLAlchemy リレーション `cascade="all, delete-orphan"` を設定しました。テスト `test_delete_transaction_with_details` で取引削除後に関連明細が残存しないことを確認しています。
+
+### 7.3. テストカバレッジ
+
+- **database.py**: 95%
+- **主要モデル**: 100% (Product, LocalProduct, Transaction, TransactionDetail)
 
 ---
 
@@ -237,6 +243,7 @@ PYTHONPATH=. uv run pytest tests/ --cov=database --cov-report=html
 
 ## 9. 参考資料
 
+- [00_Test_Plan_and_Report.md](./00_Test_Plan_and_Report.md) - テスト計画書兼レポート
 - [03_Database_Schema.md](../03_Database_Schema.md) - データベース設計書
 - [02_API_Specification.md](../02_API_Specification.md) - API仕様書
 - [pytest公式ドキュメント](https://docs.pytest.org/)

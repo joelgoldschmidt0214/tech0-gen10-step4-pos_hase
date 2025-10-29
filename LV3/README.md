@@ -200,11 +200,19 @@ LV3/
 
 詳細な設計ドキュメントは`./public/docs/`に格納されています。
 
+### 設計ドキュメント
+
 - [**00_Project_Overview.md**](./public/docs/00_Project_Overview.md) - プロジェクト概要と開発環境
 - [**01_Functional_Requirements.md**](./public/docs/01_Functional_Requirements.md) - 機能要件一覧
 - [**02_API_Specification.md**](./public/docs/02_API_Specification.md) - API仕様書
 - [**03_Database_Schema.md**](./public/docs/03_Database_Schema.md) - データベース設計書
 - [**04_Customer_Value_Proposition.md**](./public/docs/04_Customer_Value_Proposition.md) - 顧客価値提案
 - [**05_Secure_Azure_Architecture.md**](./public/docs/05_Secure_Azure_Architecture.md) - セキュアなAzure構成設計
+
+### テストドキュメント
+
+- [**00_Test_Plan_and_Report.md**](./public/docs/tests/00_Test_Plan_and_Report.md) - テスト計画書兼レポート
+- [**01_Database_Test_Design.md**](./public/docs/tests/01_Database_Test_Design.md) - データベーステスト設計
+- [**02_API_Test_Design.md**](./public/docs/tests/02_API_Test_Design.md) - APIテスト設計
 
 ---
